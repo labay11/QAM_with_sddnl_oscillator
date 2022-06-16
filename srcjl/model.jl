@@ -25,7 +25,6 @@ build_system(
 
 function eigvals(L::SuperOperator, n_ev::Int)
     A = collect(L.data)
-    A = collect(L.data)
     λs = eigvals(A)
     sort!(λs, by = x -> (-real(x), imag(x)))
     λs[1:n_ev]
