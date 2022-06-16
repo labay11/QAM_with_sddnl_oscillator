@@ -1,2 +1,3 @@
-# QAM_with_sddnl_oscillador
-Quantum associative memory with a single driven-dissipative nonlinear oscillator
+# Quantum associative memory with a single driven-dissipative nonlinear oscillator
+
+Code used in the porduction of the paper: [arXiv:2205.09491](https://arxiv.org/abs/2205.09491).
