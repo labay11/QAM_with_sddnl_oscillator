@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from argparse import ArgumentParser
 from joblib import Parallel, delayed
@@ -25,6 +24,18 @@ def compute_classicality(betas, nl_eta, nl_dis, g2=0.4, d=0.4, parallel=True):
     return np.array(res)
 
 
+def join_files():
+    parentdir = local_data_path(__file__)
+
+    for nmdir in parentdir.iterdir():
+        for g2dir in nmdir.iterdir():
+            files = sorted([f for f in g2dir.iterdir()], key=lambda f: int(f.stem))
+            data = [np.load(f) for f in files]
+            np.save(nmdir / f'{g2dir.name}.npy', np.array(data))
+            if len(files) == 51:
+                g2dir.rmdir()
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
 
@@ -33,12 +44,16 @@ if __name__ == '__main__':
     parser.add_argument('-nl', type=int, help='nl_eta == nl_dis')
     parser.add_argument('-ml', type=int, help='method to use (1: me, 2: deterministic)')
     parser.add_argument('-p', '--plot', action='store_true')
+    parser.add_argument('--join', action='store_true')
 
     args = parser.parse_args()
 
-    fpath = local_data_path(__file__, args.nl, args.ml) / f'g_{args.g}'
-    fpath.mkdir(parents=True, exist_ok=True)
-    beta = 0.01 + (6 - 0.01) * args.j / 50.
-    C = _internal(beta, args.g, 0.4, args.nl, args.ml)
-    print(beta, C)
-    np.save(fpath / f'{args.j}.npy', [beta, C])
+    if args.join:
+        join_files()
+    else:
+        fpath = local_data_path(__file__, args.nl, args.ml) / f'g_{args.g}'
+        fpath.mkdir(parents=True, exist_ok=True)
+        beta = 0.01 + (6 - 0.01) * args.j / 50.
+        C = _internal(beta, args.g, 0.4, args.nl, args.ml)
+        print(beta, C)
+        np.save(fpath / f'{args.j}.npy', [beta, C])
