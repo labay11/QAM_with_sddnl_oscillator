@@ -1,16 +1,34 @@
 from pathlib import Path
 import numpy as np
-from PIL import Image
 
 from cycler import cycler
 
 DATA_PATH = Path('~/Documents/data/gqvdp/').expanduser()
-PLOT_PATH = Path('~/Documents/codes/qam_with_sddnl_osc/plots/').expanduser()
+PLOT_PATH = Path('~/Documents/GitHub/QAM_with_sddnl_oscillator/plots/').expanduser()
 TOL = 1e-20
 
 
-def amplitude(g2, eta, nl_eta, nl_dis):
-    return np.power(2 * nl_eta * eta / (nl_dis * g2), 1 / (2 * nl_dis - nl_eta))
+def local_data_path(fname, nl_eta=None, nl_dis=None):
+    path = DATA_PATH / Path(fname).stem
+    if nl_eta is not None and nl_dis is not None:
+        path = path / f'{nl_eta}_{nl_dis}'
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def local_plot_path(fname, nl_eta=None, nl_dis=None):
+    path = PLOT_PATH / Path(fname).stem
+    if nl_eta is not None and nl_dis is not None:
+        path = path / f'{nl_eta}_{nl_dis}'
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def amplitude(g2, eta, n, m):
+    if n == 2 * m:
+        return np.power(1 / (m * (4 * eta - g2)), 1 / (2 * m - 2))
+
+    return np.power(2 * n * eta / (m * g2), 1 / (2 * m - n))
 
 
 def driving_dissipation_ratio(amplitude, nl_eta, nl_dis):
@@ -39,7 +57,7 @@ PAPER_TYPES = {
     'preprint': (510., 672.),
     'paper': (510. / 2, 672.),
     'beamer169': (398.3386, 243.76566),
-    'beamer43': (307.28987, 260.83748)
+    'beamer43': (357.77, 260.83748)
 }
 
 

@@ -8,7 +8,7 @@ from model import build_system
 __all__ = ['metastable_states']
 
 
-def metastable_states(g2, eta, D, nl_eta, nl_dis, dim, g1=1, adag=False):
+def metastable_states(g2, eta, D, n, m, dim=50, g1=1, adag=False):
     r"""Computes the metast states of the oscillator.
 
     Parameters
@@ -19,9 +19,9 @@ def metastable_states(g2, eta, D, nl_eta, nl_dis, dim, g1=1, adag=False):
         the driving strength.
     D : float
         the detuning.
-    nl_eta : int
+    n : int
         the power of the driving.
-    nl_dis : int
+    m : int
         the power of the dissipation.
     dim : int
         the cut-off dimension of the Hilbert space.
@@ -33,15 +33,15 @@ def metastable_states(g2, eta, D, nl_eta, nl_dis, dim, g1=1, adag=False):
     Returns
     -------
     ems
-        list of metastable states, where the first one corresponds to the steady state (size `nl_eta + 1`).
+        list of metastable states, where the first one corresponds to the steady state (size `n + 1`).
     left
-        list of left eigenstates after normalisation (size `nl_eta`).
+        list of left eigenstates after normalisation (size `n`).
     right
-        list of right eigenstates after normalisation (size `nl_eta`).
+        list of right eigenstates after normalisation (size `n`).
     projectors
-        list of left projectors onto the metastable states, in the same order as `ems` (size `nl_eta`).
+        list of left projectors onto the metastable states, in the same order as `ems` (size `n`).
     """
-    dirpath = DATA_PATH / 'ems' / f'{"adag" if adag else "a"}/{nl_eta}_{nl_dis}'
+    dirpath = DATA_PATH / 'ems' / f'{"adag" if adag else "a"}/{n}_{m}'
     fname = f'{g1}_{g2:.6f}_{eta:.6f}_{D}_{dim}'
 
     files = ['EMS', 'L', 'R', 'P']
@@ -49,15 +49,15 @@ def metastable_states(g2, eta, D, nl_eta, nl_dis, dim, g1=1, adag=False):
         EMS, Ls, Rs, Ps = [np.load(dirpath / f'{fname}-{post}.npy') for post in files]
         return list(map(Qobj, EMS)), list(map(Qobj, Ls)), list(map(Qobj, Rs)), list(map(Qobj, Ps))
     else:
-        L = build_system(g1, g2, eta, D, nl_eta=nl_eta, nl_dis=nl_dis, dim=dim, adag=adag)
-        output = ems_qvdp(L, nl_eta=nl_eta, max_eigvals=nl_eta + 2)
+        L = build_system(g1, g2, eta, D, n=n, m=m, dim=dim, adag=adag)
+        output = ems_qvdp(L, n=n, max_eigvals=n + 2)
         dirpath.mkdir(parents=True, exist_ok=True)
         for j, post in enumerate(files):
             np.save(dirpath / f'{fname}-{post}.npy', np.array(output[j]))
         return output
 
 
-def ems_qvdp(L_or_H, Js=None, nl_eta=2, max_eigvals=5):
+def ems_qvdp(L_or_H, Js=None, n=2, max_eigvals=5):
     L = liouvillian(L_or_H, Js) if Js else L_or_H
     eigvals, eigvecsr = L.eigenstates(sort='high', eigvals=max_eigvals)
     _, eigvecsl = L.dag().eigenstates(sort='high', eigvals=max_eigvals)
@@ -67,11 +67,11 @@ def ems_qvdp(L_or_H, Js=None, nl_eta=2, max_eigvals=5):
 
     Id = qeye(rho_ss.shape[0])
 
-    if nl_eta == 2:
+    if n == 2:
         return ems_qvdp_2(eigvals, eigvecsl, eigvecsr, rho_ss, Id)
-    elif nl_eta == 3:
+    elif n == 3:
         return ems_qvdp_3(eigvals, eigvecsl, eigvecsr, rho_ss, Id)
-    elif nl_eta == 4:
+    elif n == 4:
         return ems_qvdp_4(eigvals, eigvecsl, eigvecsr, rho_ss, Id)
     else:
         raise NotImplementedError
@@ -131,7 +131,7 @@ def ems_qvdp_3(ev, evl, evr, rho_ss, Id):
         (-L[1] + (ems_ev[1][1] / Dc1) * (L[0] - ems_ev[0][0] * Id)) / Dc2
     ]
 
-    return mus, [l1], [r1], projs
+    return mus, L, R, projs
 
 
 def ems_qvdp_4(ev, evl, evr, rho_ss, Id):

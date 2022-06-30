@@ -5,14 +5,14 @@ from joblib import Parallel, delayed
 
 from model import classicallity
 from ems import metastable_states
-from utils import DATA_PATH, driving_dissipation_ratio
+from utils import local_data_path, driving_dissipation_ratio
 
 
 def _internal(beta, g2, d, nl_eta, nl_dis):
     eta = driving_dissipation_ratio(beta, nl_eta, nl_dis) * g2
     dim = max(min(140, int(beta) * 3), 50)
-    ems, ls, rs, ps = metastable_states(g2, eta, d, nl_eta, nl_dis, m=dim)
-    _, c, _ = classicallity(ls, ems[1:])
+    ems, ls, rs, ps = metastable_states(g2, eta, d, nl_eta, nl_dis, dim=dim)
+    _, c, _ = classicallity(ls, ems)
     return c
 
 
@@ -28,23 +28,17 @@ def compute_classicality(betas, nl_eta, nl_dis, g2=0.4, d=0.4, parallel=True):
 if __name__ == '__main__':
     parser = ArgumentParser()
 
+    parser.add_argument('-g', type=float, help='g2')
+    parser.add_argument('-j', type=int, help='index')
     parser.add_argument('-nl', type=int, help='nl_eta == nl_dis')
     parser.add_argument('-ml', type=int, help='method to use (1: me, 2: deterministic)')
     parser.add_argument('-p', '--plot', action='store_true')
 
     args = parser.parse_args()
 
-    fpath = DATA_PATH / 'classicallity/a'
-    betas = np.linspace(0.1, 10, 11)
-    if args.plot:
-        import matplotlib.pyplot as plt
-        for f in os.listdir(fpath):
-            C = np.load(os.path.join(fpath, f))
-            plt.plot(betas[1:], np.log10(C)[1:], label=f)
-        plt.legend()
-        plt.show()
-    else:
-        C = compute_classicality(betas, args.nl, args.ml)
-
-        os.makedirs(fpath, exist_ok=True)
-        np.save(os.path.join(fpath, f'{args.nl}_{args.ml}.npy'), C)
+    fpath = local_data_path(__file__, args.nl, args.ml) / f'g_{args.g}'
+    fpath.mkdir(parents=True, exist_ok=True)
+    beta = 0.01 + (6 - 0.01) * args.j / 50.
+    C = _internal(beta, args.g, 0.4, args.nl, args.ml)
+    print(beta, C)
+    np.save(fpath / f'{args.j}.npy', [beta, C])

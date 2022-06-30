@@ -1,10 +1,10 @@
 import numpy as np
-from qutip import destroy, expect, liouvillian, vector_to_operator
+from qutip import destroy, expect, liouvillian, vector_to_operator, qeye
 
 from utils import TOL, DATA_PATH
 
 
-def build_system(g1, g2, eta, D, nl_eta=2, nl_dis=2, dim=25, full_lv=True, phi=0, adag=False):
+def build_system(g1, g2, eta, D, n=2, m=2, dim=25, full_lv=True, phi=0, adag=False):
     """Construct the liouvillian operator for the system.
 
     Parameters
@@ -12,14 +12,14 @@ def build_system(g1, g2, eta, D, nl_eta=2, nl_dis=2, dim=25, full_lv=True, phi=0
     g1 : float
         linear dissipation rate
     g2 : float
-        non-linear dissipation rate, corresponding to `nl_dis`
+        non-linear dissipation rate, corresponding to `m`
     eta : float
         driving strength
     D : float
         detuning frequency between oscillator and driving
-    nl_eta : int
+    n : int
          power of the driving (the default is 2).
-    nl_dis : int
+    m : int
          power of the non-linear dissipation (the default is 2).
     dim : int
          boson truncsation level (the default is 25).
@@ -37,17 +37,17 @@ def build_system(g1, g2, eta, D, nl_eta=2, nl_dis=2, dim=25, full_lv=True, phi=0
         Liouvillian superoperator or the hamiltonian and jump operators (see `full_lv`).
     """
     a = destroy(dim)
-    phase = np.exp(1j * phi * nl_eta)
-    H = D * a.dag() * a + 1j * eta * (a**nl_eta * phase - a.dag()**nl_eta * np.conj(phase))
+    phase = np.exp(1j * phi * n)
+    H = D * a.dag() * a + 1j * eta * (a**n * phase - a.dag()**n * np.conj(phase))
     Js = []
     if g1 > 0:
         Js.append(np.sqrt(g1) * (a.dag() if adag else a))
     if g2 > 0:
-        Js.append(np.sqrt(g2) * a**nl_dis)
+        Js.append(np.sqrt(g2) * a**m)
     return liouvillian(H, Js) if full_lv else (H, Js)
 
 
-def eigvals(g2, eta, D, nl_eta, nl_dis, dim=50, n_eigvals=8, g1=1):
+def eigvals(g2, eta, D, n, m, dim=50, n_eigvals=8, g1=1):
     """Computes the eigenvalues of the system.
 
     Parameters
@@ -61,13 +61,13 @@ def eigvals(g2, eta, D, nl_eta, nl_dis, dim=50, n_eigvals=8, g1=1):
         the eigenvalues sorted in decreasing real part and decreasing imaginary part.
     """
     saved_ev = max(n_eigvals, 10)
-    fpath = DATA_PATH / 'ev/a' / f'{nl_eta}_{nl_dis}' / f'{g1}_{g2}_{eta}_{D}_{dim}_{saved_ev}.npy'
+    fpath = DATA_PATH / 'ev/a' / f'{n}_{m}' / f'{g1}_{g2}_{eta}_{D}_{dim}_{saved_ev}.npy'
 
     if fpath.exists():
         return np.load(fpath)
     fpath.parent.mkdir(parents=True, exist_ok=True)
 
-    L = build_system(1, g2, eta, D, nl_eta, nl_dis, dim)
+    L = build_system(1, g2, eta, D, n, m, dim)
     ev = L.eigenenergies(sort='high', eigvals=saved_ev)
     ev[0] = 0
 
@@ -77,7 +77,7 @@ def eigvals(g2, eta, D, nl_eta, nl_dis, dim=50, n_eigvals=8, g1=1):
     return ev[:n_eigvals]
 
 
-def _diag_liouv(L_or_H, Js=None, nl_eta=2, max_eigvals=5):
+def _diag_liouv(L_or_H, Js=None, n=2, max_eigvals=5):
     L = liouvillian(L_or_H, Js) if Js else L_or_H
     eigvals, eigvecsr = L.eigenstates(sort='high', eigvals=max_eigvals)
     _, eigvecsl = L.dag().eigenstates(sort='high', eigvals=max_eigvals)
@@ -116,7 +116,7 @@ def _diag_liouv(L_or_H, Js=None, nl_eta=2, max_eigvals=5):
             sgn = -1 if np.imag(eigvals[j]) > 0 else 1
 
             lr = (l1 + l2) * 0.5
-            w = np.exp(-1j * 2 * np.pi / nl_eta)
+            w = np.exp(-1j * 2 * np.pi / n)
             # cambiant + <-> - obtens un lobe o laltre
             li = (l1 * np.conj(w) + l2 * w) * 0.5 * sgn
             rr = (r1 + r2) * 0.5
@@ -162,6 +162,9 @@ def classicallity(left_ops, ems):
         the projectors onto the metastable phases
     """
     n = len(ems)
+
+    if len(left_ops) == n - 1:
+        left_ops = [qeye(ems[0].shape[0])] + left_ops
 
     if len(left_ops) != n:
         raise ValueError(f'Number of metastable states ({n}) is different from'

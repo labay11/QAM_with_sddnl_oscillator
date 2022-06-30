@@ -35,6 +35,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
 
     if cmap is None:
         cmap = 'magma'
+        ax.tick_params(color='w')
 
     cf = ax.contourf(xvec, yvec, W, 100, norm=mpl.colors.Normalize(wmin, wmax), cmap=cmap)
 
@@ -54,7 +55,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
     return fig, ax, cf
 
 
-def plot_multiple_wigner(fig, axs, states, alpha_max=7, div=200, colorbar=True):
+def plot_multiple_wigner(fig, axs, states, alpha_max=7, div=500, colorbar=True):
     if isinstance(alpha_max, float):
         alpha_max = (-alpha_max, alpha_max)
     if isinstance(alpha_max, tuple):
@@ -76,10 +77,13 @@ def plot_multiple_wigner(fig, axs, states, alpha_max=7, div=200, colorbar=True):
 
     norm = Normalize(wmin, wmax)
     for ax, W, xvec in zip(axs, wigners, xvecs):
+        if not colorbar:
+            norm = Normalize(W.min(), W.max())
         cf = ax.pcolormesh(xvec, xvec, W,
                            norm=norm, cmap='magma', shading='nearest', rasterized=True)
         ax.set_xlabel(r'$\rm{Re}(\alpha)$')
         ax.set_ylabel(r'$\rm{Im}(\alpha)$')
+        ax.tick_params(color='w')
 
     cax = None
     if colorbar:
