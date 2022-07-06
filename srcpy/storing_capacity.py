@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import root
 from scipy.special import loggamma
 import matplotlib.pyplot as plt
-from gqvdp.plotutils import latexify
+from utils import latexify, local_plot_path
 
 TOL = 1e-9
 
@@ -38,7 +38,7 @@ def storing_capacity(p, alphas, tol=1e-9, infidelity=True):
 
 
 def simple_plot(ps):
-    latexify(plt, paper=2, fract=0.18, margin_x=0, margin_y=0, palette='qualitative')
+    latexify(plt, type='beamer43', fract=(0.8, 0.6), palette='qualitative')
 
     fig, ax = plt.subplots(1, 1)
     ax.set_xlabel(r'$\beta$')
@@ -50,17 +50,18 @@ def simple_plot(ps):
 
     c = 0
     for p, sc, sc2 in zip(ps, capacities, capacities_2):
-        ax.plot(alphas, sc, label=f'{p}', c=f'C{c}')
-        ax.plot(alphas, sc2, ls='--', c=f'C{c}')
+        # ax.plot(alphas, sc, label=f'{p}', c=f'C{c}')
+        ax.plot(alphas, sc2, ls='--', c=f'C{c}', label=f'{p}')
         c += 1
 
     ax.axhline(0.138, c='k')
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[::-1], labels[::-1], bbox_to_anchor=(0.9, 0.6), loc='center right', borderaxespad=0, title=r'$n$')
-    ax.text(0.995, 0.98, r'$(b)$', ha='right', va='top', transform=ax.transAxes)
-    fig.tight_layout(pad=0.05)
+    ax.legend(handles[::-1], labels[::-1], ncol=2, loc='upper right', borderaxespad=0.1, title=r'$n$')
+    ax.text(alphas[-1], 0.14, 'Hebbian', va='bottom', ha='right')
+    # ax.text(0.995, 0.98, r'$(b)$', ha='right', va='top', transform=ax.transAxes)
+    # fig.tight_layout(pad=0.05)
     fig.patch.set_alpha(0)
-    fig.savefig('critical.pdf')
+    fig.savefig(local_plot_path(__file__) / 'critical_unbounded.pdf')
 
 
 def plot_como(ps):

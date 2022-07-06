@@ -1,10 +1,11 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 from joblib import Parallel, delayed
 
 from model import classicallity
 from ems import metastable_states
-from utils import local_data_path, driving_dissipation_ratio
+from utils import local_data_path, local_plot_path, driving_dissipation_ratio, latexify
 
 
 def _internal(beta, g2, d, nl_eta, nl_dis):
@@ -36,6 +37,34 @@ def join_files():
                 g2dir.rmdir()
 
 
+def plot_comparison():
+    latexify(plt, type='beamer43', fract=(0.8, 0.6), palette='default')
+
+    fig, ax = plt.subplots()
+    ax.set_yscale('log')
+    ax.set(xlabel=r'$\beta$', ylabel='Classicality')
+
+    parentdir = local_data_path(__file__)
+    c = 0
+    for nmdir in parentdir.iterdir():
+        n, m = list(map(int, nmdir.name.split('_')))
+        g2s = [f for f in nmdir.iterdir() if f.name.startswith('g') and f.name.endswith('.npy')]
+        g2s = sorted(g2s, key=lambda x: float(x.name[:-4].split('_')[-1]))
+
+        data = np.load(g2s[0])
+        for j in range(len(g2s) - 1):
+            data += np.load(g2s[j + 1])
+        data /= len(g2s)
+        data[data > 1e8] = np.nan
+
+        ax.plot(data[:, 0], data[:, 1], c=f'C{c}', label=rf'${n} - {m}$')
+
+        c += 1
+
+    ax.legend()
+    fig.savefig(local_plot_path(__file__) / 'comparison.pdf')
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
 
@@ -50,6 +79,8 @@ if __name__ == '__main__':
 
     if args.join:
         join_files()
+    elif args.plot:
+        plot_comparison()
     else:
         fpath = local_data_path(__file__, args.nl, args.ml) / f'g_{args.g}'
         fpath.mkdir(parents=True, exist_ok=True)
