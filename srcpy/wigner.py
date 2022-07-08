@@ -35,9 +35,11 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
 
     if cmap is None:
         cmap = 'magma'
-        ax.tick_params(color='w')
+        ax.tick_params(axis='both', which='both', color='w')
 
-    cf = ax.contourf(xvec, yvec, W, 100, norm=mpl.colors.Normalize(wmin, wmax), cmap=cmap)
+    # cf = ax.contourf(xvec, yvec, W, 100, norm=mpl.colors.Normalize(wmin, wmax), cmap=cmap)
+    cf = ax.pcolormesh(xvec, yvec, W,
+                       cmap='magma', norm=mpl.colors.Normalize(wmin, wmax), shading='gouraud', rasterized=True)
 
     if xvec is not yvec:
         ax.set_ylim(xvec.min(), xvec.max())
@@ -83,7 +85,7 @@ def plot_multiple_wigner(fig, axs, states, alpha_max=7, div=500, colorbar=True):
                            norm=norm, cmap='magma', shading='nearest', rasterized=True)
         ax.set_xlabel(r'$\rm{Re}(\alpha)$')
         ax.set_ylabel(r'$\rm{Im}(\alpha)$')
-        ax.tick_params(color='w')
+        ax.tick_params(axis='both', which='both', color='w')
 
     cax = None
     if colorbar:
