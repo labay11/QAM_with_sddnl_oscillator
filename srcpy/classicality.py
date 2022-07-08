@@ -9,7 +9,7 @@ from utils import local_data_path, driving_dissipation_ratio
 
 def _internal(beta, g2, d, nl_eta, nl_dis):
     eta = driving_dissipation_ratio(beta, nl_eta, nl_dis) * g2
-    dim = max(min(140, int(beta) * 3), 50)
+    dim = 120
     ems, ls, rs, ps = metastable_states(g2, eta, d, nl_eta, nl_dis, dim=dim)
     _, c, _ = classicallity(ls, ems)
     return c
@@ -25,15 +25,18 @@ def compute_classicality(betas, nl_eta, nl_dis, g2=0.4, d=0.4, parallel=True):
 
 
 def join_files():
+    import shutil
     parentdir = local_data_path(__file__)
 
     for nmdir in parentdir.iterdir():
         for g2dir in nmdir.iterdir():
+            if not g2dir.is_dir():
+                continue
             files = sorted([f for f in g2dir.iterdir()], key=lambda f: int(f.stem))
             data = [np.load(f) for f in files]
             np.save(nmdir / f'{g2dir.name}.npy', np.array(data))
             if len(files) == 51:
-                g2dir.rmdir()
+                shutil.rmtree(g2dir)
 
 
 if __name__ == '__main__':
