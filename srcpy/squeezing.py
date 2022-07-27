@@ -1,24 +1,9 @@
-from pathlib import Path
-
 import numpy as np
 import matplotlib.pyplot as plt
 import qutip as qt
-from joblib import Parallel, delayed
 
 from model import build_system
-from utils import DATA_PATH, PLOT_PATH, latexify
-
-
-def local_data_path(nl_eta, nl_dis):
-    path = DATA_PATH / Path(__file__).stem / 'a' / f'{nl_eta}_{nl_dis}'
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def local_plot_path(nl_eta, nl_dis):
-    path = PLOT_PATH / Path(__file__).stem / 'a' / f'{nl_eta}_{nl_dis}'
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+from utils import local_data_path, local_plot_path, latexify
 
 
 def parse_linspace(data):
@@ -59,7 +44,7 @@ def plot_map(file, outpath):
 
     EV = np.real(np.load(file))
 
-    S = np.sqrt(EV[:, :, 1] - EV[:, :, 0]**2)
+    S = np.sqrt(EV[:, :, 1] - EV[:, :, 0]**2) / EV[:, :, 0]
     cb = ax.pcolormesh(g2s, etas, S, cmap='magma', shading='gouraud', rasterized=True)
     ax.set(xlabel=r'$\gamma_m$', ylabel=r'$\eta_n$')
     cbar = fig.colorbar(cb)
@@ -67,30 +52,33 @@ def plot_map(file, outpath):
     fig.savefig(outpath)
 
 
-def plot_lines(files, outpath, labels=None):
+def plot_lines(files, outpath, labels=None, right_amp=False):
     latexify(plt, type='paper', fract=0.25)
 
     if labels is None:
         labels = [None] * len(files)
 
     fig, ax = plt.subplots()
+
     for file, lbl in zip(files, labels):
         ev = np.real(np.load(file))
         betas, g, D = parse_filename(file.stem)
-        ax.plot(betas, np.sqrt(ev[:, 1] - ev[:, 0]), label=lbl)
+        sq = np.sqrt(ev[:, 1] - ev[:, 0]**2)
+        sq[sq < 0] = np.nan
+        ax.plot(betas[10:], sq[10:], label=lbl)
 
-    ax.set(xlabel=r'$\eta_n/\gamma_m$', ylabel='Squeezing')
-    ax.legend()
+    ax.set(xlabel=r'$\beta$', ylabel='Squeezing', yscale='log')
+    ax.legend(ncol=2)
 
     fig.savefig(outpath)
 
 
 def plot_all():
-    dirpath = local_data_path(3, 2).parent
+    dirpath = local_data_path(__file__)
 
     for folder in dirpath.iterdir():
         n, m = map(int, folder.name.split('_'))
-        savepath = local_plot_path(n, m)
+        savepath = local_plot_path(__file__, n, m)
         for file in folder.iterdir():
             if file.suffix != '.npy' or file.is_dir():
                 continue
@@ -106,7 +94,7 @@ def plot_all():
 
 
 def plot_comparison(n, m, filter_by, outpath, label):
-    dirpath = local_data_path(n, m)
+    dirpath = local_data_path(__file__, n, m)
     files = [
         f
         for f in dirpath.iterdir()
@@ -116,9 +104,51 @@ def plot_comparison(n, m, filter_by, outpath, label):
     plot_lines(files, outpath, [label(parse_filename(f.stem)) for f in files])
 
 
+def plot_gd_comparisons():
+    ds = [0.1, 0.2, 0.5, 1, 1.5]
+    gs = [0.1, 0.2, 0.4, 0.8, 1.2]
+
+    dirpath = local_data_path(__file__)
+
+    for folder in dirpath.iterdir():
+        n, m = map(int, folder.name.split('_'))
+
+        for d in ds:
+            plot_comparison(
+                n, m,
+                lambda x: x[2] == d,
+                local_plot_path(__file__, n, m) / f'compare_d-{d}.pdf',
+                lambda x: x[1])
+
+        for g in gs:
+            plot_comparison(
+                n, m,
+                lambda x: x[1] == g,
+                local_plot_path(__file__, n, m) / f'compare_g-{g}.pdf',
+                lambda x: x[2])
+
+
+def plot_nm_comparisons(d=None, g=None):
+    ds = [0.1, 0.2, 0.5, 1, 1.5]
+    gs = [0.1, 0.2, 0.4, 0.8, 1.2]
+
+    dirpath = local_data_path(__file__)
+    outpath = local_plot_path(__file__, 'n', 'm')
+
+    mnms = sorted(
+        [tuple(map(int, folder.name.split('_'))) for folder in dirpath.iterdir()],
+        key=lambda x: (x[0], x[1])
+    )
+    labels = [f'${n} - {m}$' for n, m in mnms]
+
+    for d in ds:
+        for g in gs:
+            fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-500_d-{d}_g-{g}.npy' for n, m in mnms]
+            fpaths = [f for f in fpaths if f.exists()]
+            plot_lines(fpaths, outpath / f'd-{d}_g-{g}.pdf', labels)
+
+
 if __name__ == '__main__':
-    plot_comparison(
-        4, 3,
-        lambda x: x[2] == 1.5,
-        local_plot_path(4, 3) / 'compare_d-1.5.pdf',
-        lambda x: x[1])
+    plot_nm_comparisons()
+
+    # plot_all()

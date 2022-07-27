@@ -151,6 +151,33 @@ def single_driven_nonlinear_oscillator():
     fig.savefig(PLOT_PATH / 'beamer' / 'single_driven_nonlinear_oscillator_full.pdf')
 
 
+def betas(n, m, betas, g2=0.1):
+    latexify(plt, type='beamer43', fract=(1., 0.4))
+
+    a = qt.destroy(100)
+    D = 0.4
+
+    ss = []
+    for beta in betas:
+        eta = driving_dissipation_ratio(beta, n, m) * g2
+        H = D * a.dag() * a + 1j * eta * (a**n - a.dag()**n)
+        J = [a, g2 * a**m]
+        L = qt.liouvillian(H, J)
+
+        ss.append(qt.steadystate(L))
+
+    fig, axs = plt.subplots(ncols=3, sharey=True, gridspec_kw={'wspace': 0.01})
+
+    plot_multiple_wigner(fig, axs, ss, alpha_max=7.5, colorbar=False, div=400)
+    for ax, beta in zip(axs, betas):
+        ax.set_title('')
+        ax.set_ylabel('')
+        ax.text(0.5, 0.99, rf'$\beta = {beta}$', va='top', ha='center', transform=ax.transAxes, color='w')
+    axs[0].set_ylabel(r'$\rm{Im}(\alpha)$')
+
+    fig.savefig(PLOT_PATH / 'beamer' / f'betas_{n}_{m}.pdf')
+
+
 def full():
     latexify(plt, type='beamer43', fract=(1., 0.4))
 
@@ -239,13 +266,14 @@ def plot_params(params):
 
 
 # single_oscillator()
-single_driven_oscillator()
+# single_driven_oscillator()
 # single_driven_dissipative_oscillator()
 # single_driven_amplificative_oscillator()
 # single_driven_nonlinear_oscillator()
 # single_driven_dissipative_nonlinear_oscillator()
-# full()
-# full_equal()
+# betas(4, 4, [0.5, 2, 4])
+full()
+full_equal()
 
 
 p22 = {

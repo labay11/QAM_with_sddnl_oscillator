@@ -33,8 +33,8 @@ def plot(fig, ax, g2, eta, D, n, m, g1=1, colorbar=False):
     if colorbar:
         fig.colorbar(cb.lines)
 
-    ax.scatter([mu] * n, [(2 * j + 1) * np.pi / n for j in range(n)], c='k', marker='o')
-    ax.scatter([res.x[0]] * n, [(2 * j + 1) * np.pi / n for j in range(n)], c='r', marker='x')
+    ax.scatter([mu] * n, [(2 * j + 1) * np.pi / n for j in range(n)], c='k', marker='o', label='Mean field')
+    ax.scatter([res.x[0]] * n, [(2 * j + 1) * np.pi / n for j in range(n)], c='r', marker='x', label='Numerical')
     ax.set(yticks=np.arange(0, 5, 1) * np.pi / 2, yticklabels=[
         r'$0$' if j == 0 else
         rf'${(j if j > 1 else "") if j % 2 == 1 else (j//2 if j > 2 else "")}\pi{"/2" if j % 2 == 1 else ""}$'
@@ -46,6 +46,15 @@ def plot(fig, ax, g2, eta, D, n, m, g1=1, colorbar=False):
 
     ax.text(0.96, 0.945, f'$n = {n}$\n$m = {m}$', bbox=dict(facecolor='white', alpha=0.8, boxstyle='Round'),
             transform=ax.transAxes, va='top', ha='right')
+
+
+def single_plot(params):
+    latexify(plt, type='beamer43', fract=(0.8, 0.7))
+
+    fig, ax = plt.subplots()
+    plot(fig, ax, **params)
+    ax.legend(loc='upper left')
+    fig.savefig(PLOT_PATH / 'mean_field' / 'mf_single.pdf')
 
 
 def full_plot(params):
@@ -89,5 +98,5 @@ if __name__ == '__main__':
     #
     # for p in [p22, p32, p33, p43, p44]:
     #     plot(**p)
-
-    full_plot([[p22, p32, p33], [p42, p43, p44]])
+    single_plot(p33)
+    # full_plot([[p22, p32, p33], [p42, p43, p44]])

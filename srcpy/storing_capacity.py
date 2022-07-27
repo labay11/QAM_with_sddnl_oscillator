@@ -38,7 +38,7 @@ def storing_capacity(p, alphas, tol=1e-9, infidelity=True):
 
 
 def simple_plot(ps):
-    latexify(plt, type='beamer43', fract=(0.8, 0.6), palette='qualitative')
+    latexify(plt, type='beamer43', fract=(0.8, 0.4), palette='qualitative')
 
     fig, ax = plt.subplots(1, 1)
     ax.set_xlabel(r'$\beta$')

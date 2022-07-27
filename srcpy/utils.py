@@ -4,7 +4,7 @@ import numpy as np
 from cycler import cycler
 
 DATA_PATH = Path('~/Documents/data/gqvdp/').expanduser()
-PLOT_PATH = Path('~/Documents/GitHub/QAM_with_sddnl_oscillator/plots/').expanduser()
+PLOT_PATH = Path('~/Documents/codes/qam_with_sddnl_osc/plots/').expanduser()
 TOL = 1e-20
 
 
@@ -24,7 +24,7 @@ def local_plot_path(fname, nl_eta=None, nl_dis=None):
     return path
 
 
-def amplitude(g2, eta, n, m):
+def amplitude(g2, eta, n, m, **other_params):
     if n == 2 * m:
         return np.power(1 / (m * (4 * eta - g2)), 1 / (2 * m - 2))
 
@@ -37,11 +37,11 @@ def driving_dissipation_ratio(amplitude, nl_eta, nl_dis):
 
 MARKERS = ['o', 's', '^', 'v', '<', '>', 'd']
 LINE_STYLES = ['-', '--', ':', '-.']
-COLORS = ['#EE7733', '#0077BB', '#33BBEE', '#EE3377', '#CC3311', '#009988', '#BBBBBB']
+COLORS = ['#0077BB', '#CC3311', '#00993B', '#33BBEE', '#EE7733', '#EE3377', '#BBBBBB']
 
 COLOR_CYCLES = {
     'default': cycler('color', COLORS),
-    'default_mk': (cycler('color', ['#EE7733', '#0077BB', '#33BBEE', '#EE3377', '#CC3311', '#009988', '#BBBBBB']) +
+    'default_mk': (cycler('color', COLORS) +
                    cycler('marker', ['o', 's', '^', 'v', '<', '>', 'd'])),
     'qualitative': cycler('color',
                           ['#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00',  '#FFFF33', '#A65628', '#F781BF']),

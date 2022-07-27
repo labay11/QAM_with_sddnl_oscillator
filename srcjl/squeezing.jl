@@ -1,8 +1,26 @@
 using QuantumOptics
 using NPZ
 using ArgParse
+using Pardiso
+using Statistics
 
 include("model.jl")
+
+function steadystate_mkl(L::SparseSuperOpType)
+    n, m = length(L.basis_r[1]), length(L.basis_r[2])
+
+    ps = MKLPardisoSolver()
+    b = zeros(ComplexF64, n*m)
+
+    # unity trace condition for the linear solvers
+    w = mean(abs.(L.data))
+    b[1] = w
+    A = L.data + sparse(ones(n), 1:(n+1):n^2, fill(w, n), n*m, n*m)
+    x = solve(ps, A, b)
+
+    data = reshape(x, n, m)
+    DenseOperator(L.basis_r[1], L.basis_r[2], data)
+end
 
 function squeezing_γη(γs, ηs, Δ::Int, n::Int, m::Int)
     Nη = length(ηs)
@@ -35,12 +53,16 @@ function squeezing_amplitude(βs, Δ::Float64, n::Int, m::Int, γ::Float64 = 0.2
     fpath = "$(homedir())/Documents/data/gqvdp/squeezing/a/$(n)_$(m)"
     mkpath(fpath)
 
+    ps = MKLPardisoSolver()
+
     for j in 1:N
         beta = amplitude(γ, βs[j] * γ, n, m)
         dim = clamp(round(Int, beta * 3), 80, 200)
-        basis = FockBasis(dim)
-        H, J = build_system(1.0, γ, βs[j] * γ, Δ, n, m, basis, false)
-        ss = steadystate.iterative(H, J)
+        basis = FockBasis(dim - 1)
+        L = build_system(1.0, γ, βs[j] * γ, Δ, n, m, basis)
+        # ss = steadystate.iterative(H, J)
+        ss = steadystate_mkl(L)
+
         num = number(basis)
         EV[j, 1] = expect(num, ss)
         EV[j, 2] = expect(num^2, ss)

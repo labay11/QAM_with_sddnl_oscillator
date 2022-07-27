@@ -7,7 +7,7 @@ from model import build_system
 from utils import PLOT_PATH, latexify, amplitude
 
 
-def plot_fock(rho, fig=None, ax=None, figsize=(6, 6), draw_dist=True, **plot_kwargs):
+def plot_fock(rho, fig=None, ax=None, figsize=(6, 6), draw_dist=True, cut_off=None):
     if not fig and not ax:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
@@ -15,13 +15,14 @@ def plot_fock(rho, fig=None, ax=None, figsize=(6, 6), draw_dist=True, **plot_kwa
         rho = qt.ket2dm(rho)
 
     diag = np.real(rho.diag())
+    n_levels = cut_off or len(diag)
 
     N = np.arange(0, len(diag), 1) - 0.5
 
-    ax.bar(N, diag, **plot_kwargs)
+    ax.bar(N[:n_levels], diag[:n_levels], color='C0')
     if draw_dist:
         mu = np.sqrt(np.sum(diag * (N + 0.5)))
-        ax.plot(N, poisson.pmf(N + 0.5, mu**2), c='C1', ls='-', label=rf'$\beta = {mu:.4f}$')
+        ax.plot(N[:n_levels], poisson.pmf(N[:n_levels] + 0.5, mu**2), c='C1', ls='-', label=rf'$\beta = {mu:.4f}$')
 
     ax.set_xlabel('Fock level')
     ax.set_ylabel('Level probability')
