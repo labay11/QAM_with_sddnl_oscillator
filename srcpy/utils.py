@@ -35,6 +35,23 @@ def driving_dissipation_ratio(amplitude, nl_eta, nl_dis):
     return np.power(amplitude, 2 * nl_dis - nl_eta) * nl_dis / (2 * nl_eta)
 
 
+def parse_filename(fname):
+    parts = fname.split('_')
+
+    params = {}
+
+    for part in parts:
+        ss = part.split('-')
+        if len(ss) == 2:
+            params[ss[0]] = float(ss[1])
+        elif len(ss) == 4:
+            params[ss[0]] = np.linspace(float(ss[1]), float(ss[2]), int(ss[3]))
+        else:
+            raise ValueError(f'Invalid number of parts ({len(ss)}): {part}')
+
+    return params
+
+
 MARKERS = ['o', 's', '^', 'v', '<', '>', 'd']
 LINE_STYLES = ['-', '--', ':', '-.']
 COLORS = ['#0077BB', '#CC3311', '#00993B', '#33BBEE', '#EE7733', '#EE3377', '#BBBBBB']

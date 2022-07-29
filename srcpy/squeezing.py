@@ -1,9 +1,10 @@
+from argparse import ArgumentParser
 import numpy as np
 import matplotlib.pyplot as plt
 import qutip as qt
 
 from model import build_system
-from utils import local_data_path, local_plot_path, latexify
+from utils import local_data_path, local_plot_path, latexify, amplitude
 
 
 def parse_linspace(data):
@@ -26,34 +27,35 @@ def parse_filename(fname):
         return etas, gs, D
 
 
-def _expect(*params, ops):
-    try:
-        L = build_system(*params)
-        ss = qt.steadystate(L)
-        return [np.real(qt.expect(op, ss)) for op in ops]
-    except Exception:
-        return [np.nan] * len(ops)
+def squeezing_amplitude(betas, d, n, m, g=0.2):
+    N = len(betas)
 
+    EV = np.zeros((N, 2))
 
-def plot_map(file, outpath):
-    latexify(plt, type='paper', fract=0.25)
+    num = np.diag(range(200))
+    num2 = num**2
 
-    fig, ax = plt.subplots()
+    for j in range(1, N):
+        beta = amplitude(g, betas[j] * g, n, m)
+        dim = min(max(int(round(beta * 3)), 80), 200)
+        L = build_system(1.0, g, betas[j] * g, d, n, m, dim)
+        # ss = steadystate.iterative(H, J)
+        try:
+            ss = qt.steadystate(L).data.toarray()
 
-    etas, g2s, D = parse_filename(file.name)
+            EV[j, 0] = np.trace(num[:dim, :dim] @ ss)
+            EV[j, 1] = np.trace(num2[:dim, :dim] @ ss)
+        except Exception:
+            EV[j, :] = np.nan
 
-    EV = np.real(np.load(file))
-
-    S = np.sqrt(EV[:, :, 1] - EV[:, :, 0]**2) / EV[:, :, 0]
-    cb = ax.pcolormesh(g2s, etas, S, cmap='magma', shading='gouraud', rasterized=True)
-    ax.set(xlabel=r'$\gamma_m$', ylabel=r'$\eta_n$')
-    cbar = fig.colorbar(cb)
-    cbar.ax.set_ylabel('Squeezing')
-    fig.savefig(outpath)
+    np.save(local_data_path(__file__, n, m) / f"beta-{betas[0]}-{betas[-1]}-{N}_d-{d}_g-{g}.npy", EV)
 
 
 def plot_lines(files, outpath, labels=None, right_amp=False):
-    latexify(plt, type='paper', fract=0.25)
+    if not files:
+        return
+
+    latexify(plt, type='preprint', fract=(0.33, 0.25))
 
     if labels is None:
         labels = [None] * len(files)
@@ -63,11 +65,13 @@ def plot_lines(files, outpath, labels=None, right_amp=False):
     for file, lbl in zip(files, labels):
         ev = np.real(np.load(file))
         betas, g, D = parse_filename(file.stem)
-        sq = np.sqrt(ev[:, 1] - ev[:, 0]**2)
+        sq = np.sqrt(ev[:, 1] - ev[:, 0]**2) / np.sqrt(ev[:, 0])
         sq[sq < 0] = np.nan
         ax.plot(betas[10:], sq[10:], label=lbl)
 
-    ax.set(xlabel=r'$\beta$', ylabel='Squeezing', yscale='log')
+    ax.plot(betas[10:], np.ones(len(betas) - 10), c='k', ls=':', label=r'$1$')
+
+    ax.set(xlabel=r'$\eta_n/\gamma_m$', ylabel='Squeezing')
     ax.legend(ncol=2)
 
     fig.savefig(outpath)
@@ -86,9 +90,6 @@ def plot_all():
             if file.name.startswith('beta'):
                 # single line plot
                 plot_lines([file], savepath / f'{file.stem}.pdf')
-            elif file.name.startswith('g'):
-                # g-eta plot
-                plot_map(file, savepath / f'{file.stem}.pdf')
             else:
                 continue
 
@@ -105,7 +106,7 @@ def plot_comparison(n, m, filter_by, outpath, label):
 
 
 def plot_gd_comparisons():
-    ds = [0.1, 0.2, 0.5, 1, 1.5]
+    ds = [0.1, 0.2, 0.5, 1.5]
     gs = [0.1, 0.2, 0.4, 0.8, 1.2]
 
     dirpath = local_data_path(__file__)
@@ -146,9 +147,44 @@ def plot_nm_comparisons(d=None, g=None):
             fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-500_d-{d}_g-{g}.npy' for n, m in mnms]
             fpaths = [f for f in fpaths if f.exists()]
             plot_lines(fpaths, outpath / f'd-{d}_g-{g}.pdf', labels)
+            for n_ in [3, 4, 5]:
+                fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-500_d-{d}_g-{g}.npy' for n, m in mnms if n == n_]
+                fpaths = [f for f in fpaths if f.exists()]
+                plot_lines(fpaths, outpath / f'n-{n_}_d-{d}_g-{g}.pdf', [f'${n} - {m}$' for n, m in mnms if n == n_])
+
+
+def plot_gd_comparison(g, d):
+    nn = [3, 4, 5]
+
+    dirpath = local_data_path(__file__)
+    outpath = local_plot_path(__file__, 'n', 'm')
+
+    mnms = sorted(
+        [tuple(map(int, folder.name.split('_'))) for folder in dirpath.iterdir()],
+        key=lambda x: (x[0], x[1])
+    )
+
+    fig, ax = plt.subplots(ncols=3)
+    return
 
 
 if __name__ == '__main__':
-    plot_nm_comparisons()
+    parser = ArgumentParser()
 
-    # plot_all()
+    parser.add_argument('-g', type=float, help='g2')
+    parser.add_argument('-d', type=float, help='delta')
+    parser.add_argument('-n', type=int, help='nl_eta == nl_dis')
+    parser.add_argument('-m', type=int, help='method to use (1: me, 2: deterministic)')
+    parser.add_argument('--bmin', type=float, help='beta min')
+    parser.add_argument('--bmax', type=float, help='beta max')
+    parser.add_argument('--bnum', type=int, help='beta num')
+
+    parser.add_argument('-p', '--plot', action='store_true')
+
+    args = parser.parse_args()
+
+    if args.plot:
+        plot_nm_comparisons()
+    else:
+        betas = np.linspace(args.bmin, args.bmax, args.bnum)
+        squeezing_amplitude(betas, args.d, args.n, args.m, g=args.g)

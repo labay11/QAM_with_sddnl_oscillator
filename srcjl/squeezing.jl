@@ -22,30 +22,6 @@ function steadystate_mkl(L::SparseSuperOpType)
     DenseOperator(L.basis_r[1], L.basis_r[2], data)
 end
 
-function squeezing_γη(γs, ηs, Δ::Int, n::Int, m::Int)
-    Nη = length(ηs)
-    Ng = length(γ2s)
-
-    EV = Array{ComplexF64, 2}(undef, Ng, Nη, 2)
-    fpath = "$(homedir())/Documents/data/gqvdp/squeezing/a/$(n)_$(m)"
-    mkpath(fpath)
-
-    for j in 1:Ng
-        for k in 1:Nη
-            beta = amplitude(γs[j], ηs[k], n, m)
-            dim = clamp(round(Int, beta), 80, 200)
-            basis = FockBasis(dim)
-            H, J = build_system(1.0, γs[j], ηs[k], Δ, n, m, basis, full=false)
-            ss = steadystate.iterative(H, J)
-            n = number(basis)
-            EV[j, k, 1] = expect(n, ss)
-            EV[j, k, 2] = expect(n^2, ss)
-        end
-    end
-
-    npzwrite("$(fpath)/g-$(γs[1])-$(γs[Ng])-$(Ng)_e-$(ηs[1])-$(ηs[Nη])-$(Nη)_d-$(Δ).npy", EV)
-end
-
 function squeezing_amplitude(βs, Δ::Float64, n::Int, m::Int, γ::Float64 = 0.2)
     N = length(βs)
 
