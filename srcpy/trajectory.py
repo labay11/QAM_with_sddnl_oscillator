@@ -36,13 +36,13 @@ def evolve(times, phi0, g1, g2, eta, D, n, m, dim):
     data = mcsolve(H, phi0, times, c_ops=J, ntraj=1, options=opts)
 
     fname = local_data_path(__file__, n, m) / f'g1-{g1}_g2-{g2}_eta-{eta}_d-{D}_t-{times[-1]}-{len(times)}'
-    qsave(data, fname)
+    qsave(data, str(fname))
 
     return data, fname
 
 
 def animate_trajectory(fname, alpha_max=7.5):
-    data = qload(fname)
+    data = qload(str(fname))
 
     states = data.states[0]
     times = data.times
