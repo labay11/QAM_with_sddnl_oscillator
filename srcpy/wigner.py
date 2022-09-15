@@ -57,7 +57,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
     return fig, ax, cf
 
 
-def plot_multiple_wigner(fig, axs, states, alpha_max=7, div=500, colorbar=True):
+def plot_multiple_wigner(fig, axs, states, alpha_max=7., div=500, colorbar=True, cmap='magma'):
     if isinstance(alpha_max, float):
         alpha_max = (-alpha_max, alpha_max)
     if isinstance(alpha_max, tuple):
@@ -82,7 +82,7 @@ def plot_multiple_wigner(fig, axs, states, alpha_max=7, div=500, colorbar=True):
         if not colorbar:
             norm = Normalize(W.min(), W.max())
         cf = ax.pcolormesh(xvec, xvec, W,
-                           norm=norm, cmap='magma', shading='gouraud', rasterized=True)
+                           norm=norm, cmap=cmap, shading='gouraud', rasterized=True)
         ax.set_xlabel(r'$\rm{Re}(\alpha)$')
         ax.set_ylabel(r'$\rm{Im}(\alpha)$')
         ax.tick_params(axis='both', which='both', color='w')

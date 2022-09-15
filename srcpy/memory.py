@@ -172,10 +172,14 @@ def plot_time_only(adag=False, coh=True, method=0):
     fig.savefig(local_plot_path(__file__) / f'memory_{"adag" if adag else "a"}_{method}_julia.pdf')
 
 
-def plot_time_only_n(n, adag=False, coh=True, method=0):
-    latexify(plt, type='beamer43', fract=(0.9, 0.4), palette='qualitative')
+def plot_time_only_n(n, fig=None, ax=None, coh=True, method=1, adag=False):
+    savefig = False
+    if fig is None:
+        latexify(plt, type='paper', fract=0.2, palette='qualitative')
+        if ax is None:
+            fig, ax = plt.subplots()
+        savefig = True
 
-    fig, time_ax = plt.subplots()
     dirpath, dirname = _parse_files(n, adag)
 
     D = 0.4
@@ -201,10 +205,10 @@ def plot_time_only_n(n, adag=False, coh=True, method=0):
         # L = liouv_qvdp(1, g2, eta, D, n, n, m=50, adag=adag)
         # ev = L.eigenenergies(eigvals=5, sort='high')
         # t0, t1 = -1 / np.real(ev[n - 1]), -1 / np.real(ev[n])
-        times, *_ = plot_memory_data(fig, time_ax, n, n, os.path.join(dirpath, f), filetrajs,
+        times, *_ = plot_memory_data(fig, ax, n, n, os.path.join(dirpath, f), filetrajs,
                                      adag=adag, method=method, color=f'C{m}', label=levels)
-    time_ax.axhline(1 / n, c='k', ls=':')
-    time_ax.set(xlabel=r'$\gamma_1 t$', xscale='log', ylabel='Success probability')
+    ax.axhline(1 / n, c='k', ls=':')
+    ax.set(xlabel=r'$\gamma_1 t$', xscale='log', ylabel='Success probability')
 
     # time_ax.text(0.995, 0.97, rf'$(a)\ n = {n}$', transform=time_ax.transAxes,
     #              ha='right', va='top', c='k', fontsize=10)
@@ -212,7 +216,7 @@ def plot_time_only_n(n, adag=False, coh=True, method=0):
     # psuc = det_p_suc(times, g2, eta, D, n, method=method, row=1, adag=adag)
     # time_axs[n - 3].plot(times, psuc, c='k')
     # time_axs[n - 3].axvspan(t0, t1, color='grey', alpha=0.25, lw=0)
-    time_ax.legend(loc='lower left', title=r'$\dim \mathcal{H}_{eff}$', ncol=2)
+    ax.legend(loc='lower left', title=r'$\dim \mathcal{H}_{eff}$', ncol=2)
     # handles, labels = time_ax.get_legend_handles_labels()
     # fig.legend(handles[::-1], labels[::-1], borderaxespad=0.02,
     #            ncol=len(labels), loc='upper center', title='Truncated Hilbert space dimension')
@@ -220,11 +224,14 @@ def plot_time_only_n(n, adag=False, coh=True, method=0):
     #     time_ax.get_legend().remove()
 
     # fig.tight_layout(pad=0.04)
-    fig.savefig(local_plot_path(__file__, n, n) / f'memory_{n}_{"adag" if adag else "a"}_{method}_julia_single.pdf')
+    if savefig:
+        fig.savefig(local_plot_path(__file__, n, n) / f'memory_{n}_{"adag" if adag else "a"}_{method}_julia_single.pdf')
+
+    return fig, ax
 
 
 if __name__ == '__main__':
     # plot_decay_comparison()
-    plot_time_only_n(4, False, method=1)
+    plot_time_only_n(4, method=1)
     # plot_time_only(False, method=0)
     # paper_plot(False)

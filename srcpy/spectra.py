@@ -5,14 +5,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 
 from model import eigvals
-from utils import latexify, MARKERS, PLOT_PATH
-from gqvdp.paper_data import POINTS
-
-
-def local_data_path(nl_eta, nl_dis):
-    path = PLOT_PATH / Path(__file__).stem / f'{nl_eta}_{nl_dis}'
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+from utils import latexify, MARKERS, local_plot_path, local_data_path
+from constants import POINTS
 
 
 def spectra_comparison(upper_ev=5, only_mm=False):
@@ -59,7 +53,7 @@ def spectra_comparison(upper_ev=5, only_mm=False):
                ncol=len(labels), loc='upper center')
 
     plt.tight_layout(pad=0.02, rect=[0, 0, 1, 0.88])
-    plt.savefig(f'spectra_{only_mm}.pdf')
+    plt.savefig(local_plot_path(__file__) / 'beamer_spectra.pdf')
 
 
 def spectra_evolution(param, values, n_ev=8, fig=None, ax=None, **kwargs):
@@ -69,7 +63,6 @@ def spectra_evolution(param, values, n_ev=8, fig=None, ax=None, **kwargs):
         ax.set_xlabel(r'Re $\lambda$')
         ax.set_ylabel(r'Im $\lambda$')
         ax.set_xscale('symlog', linthresh=1e-1)
-        # ax.set_yscale('symlog', linthresh=1e-3)
 
     nv = len(values) - 1
     cmap = cm.get_cmap('viridis')
@@ -79,7 +72,7 @@ def spectra_evolution(param, values, n_ev=8, fig=None, ax=None, **kwargs):
         kwargs[param] = values[j]
         ev = eigvals(**kwargs, n_eigvals=n_ev)
         print(ev)
-        n = kwargs['nl_eta']
+        n = kwargs['n']
         print(np.log10(np.real(ev[n - 1])/np.real(ev[n])))
         ax.scatter(np.real(ev[:n]), np.imag(ev[:n]), c=[cmap(j / nv)], marker=MARKERS[j], label=rf'${values[j]}$')
         ax.scatter(np.real(ev[n:]), np.imag(ev[n:]), edgecolors=[cmap(j / nv)], marker=MARKERS[j], facecolors='none')
@@ -87,7 +80,7 @@ def spectra_evolution(param, values, n_ev=8, fig=None, ax=None, **kwargs):
     fig.legend(title=r'$\eta$')
     plt.tight_layout(pad=0.02)
 
-    dirpath = local_data_path(kwargs["nl_eta"], kwargs["nl_dis"])
+    dirpath = local_plot_path(__file__, kwargs["n"], kwargs["m"])
     plt.savefig(dirpath / f'{kwargs["g2"]}_{kwargs["eta"]}_{kwargs["D"]}.pdf')
 
 
@@ -101,10 +94,10 @@ def prsentation_plot():
 
 
 p43 = {
-    'g2': 0.2, 'D': 0.4, 'nl_eta': 4, 'nl_dis': 3, 'eta': 0.4 * 3.4, 'dim': 50, 'g1': 1
+    'g2': 0.2, 'D': 0.4, 'n': 4, 'm': 3, 'eta': 0.4 * 3.4, 'dim': 50, 'g1': 1
 }
 p32 = {
-    'g2': 0.4, 'D': 0.4, 'nl_eta': 3, 'nl_dis': 2, 'eta': 1, 'dim': 80
+    'g2': 0.4, 'D': 0.4, 'n': 3, 'm': 2, 'eta': 1, 'dim': 80
 }
 etas = [0, 1e-4, 1e-2, 1e-1]
 

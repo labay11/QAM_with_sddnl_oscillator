@@ -8,6 +8,10 @@ PLOT_PATH = Path('~/Documents/codes/qam_with_sddnl_osc/plots/').expanduser()
 TOL = 1e-20
 
 
+PARAM_SEPARATOR = '_'
+VALUE_SEPARATOR = '&'
+
+
 def local_data_path(fname, nl_eta=None, nl_dis=None):
     path = DATA_PATH / Path(fname).stem
     if nl_eta is not None and nl_dis is not None:
@@ -35,13 +39,28 @@ def driving_dissipation_ratio(amplitude, nl_eta, nl_dis):
     return np.power(amplitude, 2 * nl_dis - nl_eta) * nl_dis / (2 * nl_eta)
 
 
+PARAMS_ORDER = ['g1', 'g2', 'eta', 'D', 'dim', 't']
+
+
+def build_filename(**params):
+    fname = []
+    for k in PARAMS_ORDER:
+        if k in params:
+            fname.append(f'{k}{VALUE_SEPARATOR}{params[k]}')
+        elif (k + 's') in params:
+            array = params[k + 's']
+            fname.append(f'{k}s{VALUE_SEPARATOR}{array[0]}{VALUE_SEPARATOR}{array[-1]}{VALUE_SEPARATOR}{len(array)}')
+
+    return PARAM_SEPARATOR.join(fname)
+
+
 def parse_filename(fname):
-    parts = fname.split('_')
+    parts = fname.split(PARAM_SEPARATOR)
 
     params = {}
 
     for part in parts:
-        ss = part.split('-')
+        ss = part.split(VALUE_SEPARATOR)
         if len(ss) == 2:
             params[ss[0]] = float(ss[1])
         elif len(ss) == 4:
@@ -100,8 +119,17 @@ DEFAULT_PARAMS = {
     'backend': 'ps',
     'axes.labelsize': 8,
     'font.size': 8,
-    'legend.fontsize': 8,
-    'legend.title_fontsize': 10,
+
+    'legend.fontsize': 7,
+    'legend.title_fontsize': 8,
+    'legend.borderaxespad': 0.5,
+    'legend.borderpad': 0.2,
+    'legend.columnspacing': 1.5,
+    'legend.handleheight': 0.7,
+    'legend.handlelength': 1.5,
+    'legend.handletextpad': 0.8,
+    'legend.labelspacing': 0.4,
+    'legend.markerscale': 0.8,
 
     'xtick.labelsize': 7,
     'xtick.direction': 'in',
@@ -129,7 +157,7 @@ DEFAULT_PARAMS = {
     'axes.grid': False,
     'axes.linewidth': 0.5,
     'grid.linewidth': 0.5,
-    'axes.labelpad': 1.0,
+    'axes.labelpad': 0.8,
     'axes.prop_cycle': COLOR_CYCLES['default'],
     "axes.formatter.use_mathtext": True,
     'errorbar.capsize': 5,

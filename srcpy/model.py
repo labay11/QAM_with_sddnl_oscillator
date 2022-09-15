@@ -1,10 +1,10 @@
 import numpy as np
 from qutip import destroy, expect, liouvillian, vector_to_operator, qeye
 
-from utils import TOL, DATA_PATH
+from utils import TOL, local_data_path
 
 
-def build_system(g1, g2, eta, D, n=2, m=2, dim=25, full_lv=True, phi=0, adag=False):
+def build_system(g1, g2, eta, D, n=2, m=2, dim=25, full_lv=True, phi=0, adag=False, **kw_args):
     """Construct the liouvillian operator for the system.
 
     Parameters
@@ -47,7 +47,7 @@ def build_system(g1, g2, eta, D, n=2, m=2, dim=25, full_lv=True, phi=0, adag=Fal
     return liouvillian(H, Js) if full_lv else (H, Js)
 
 
-def eigvals(g2, eta, D, n, m, dim=50, n_eigvals=8, g1=1):
+def eigvals(g2, eta, D, n, m, dim=50, n_eigvals=8, g1=1.):
     """Computes the eigenvalues of the system.
 
     Parameters
@@ -61,13 +61,13 @@ def eigvals(g2, eta, D, n, m, dim=50, n_eigvals=8, g1=1):
         the eigenvalues sorted in decreasing real part and decreasing imaginary part.
     """
     saved_ev = max(n_eigvals, 10)
-    fpath = DATA_PATH / 'ev/a' / f'{n}_{m}' / f'{g1}_{g2}_{eta}_{D}_{dim}_{saved_ev}.npy'
+    fpath = local_data_path(__file__, n, m) / f'{g1}_{g2}_{eta}_{D}_{dim}_{saved_ev}.npy'
 
     if fpath.exists():
         return np.load(fpath)
     fpath.parent.mkdir(parents=True, exist_ok=True)
 
-    L = build_system(1, g2, eta, D, n, m, dim)
+    L = build_system(g1, g2, eta, D, n, m, dim)
     ev = L.eigenenergies(sort='high', eigvals=saved_ev)
     ev[0] = 0
 

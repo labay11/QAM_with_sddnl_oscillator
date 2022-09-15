@@ -1,16 +1,19 @@
+import time
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.colors import Normalize
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from qutip import destroy, rand_ket, coherent, expect, mcsolve
+from qutip import rand_ket, coherent, expect, mcsolve, mesolve, basis
 from qutip.solver import Options
 from qutip.fileio import qsave, qload
-from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 
 from model import build_system
-from utils import local_data_path, local_plot_path, amplitude
+from utils import local_data_path, local_plot_path, amplitude, build_filename
 from wigner import wigner_ss
+from constants import POINTS
 
 
 def _rand_ket(m, a=None, amp_max=None):
@@ -27,7 +30,7 @@ def _rand_ket(m, a=None, amp_max=None):
     raise RuntimeError('No state could be found with matching conditions.')
 
 
-def evolve(times, phi0, g1, g2, eta, D, n, m, dim):
+def evolve_mc(times, phi0, g1, g2, eta, D, n, m, dim):
     H, J = build_system(g1, g2, eta, D, n, m, dim, full_lv=False)
 
     opts = Options(num_cpus=4,
@@ -35,18 +38,34 @@ def evolve(times, phi0, g1, g2, eta, D, n, m, dim):
                    store_final_state=True)
     data = mcsolve(H, phi0, times, c_ops=J, ntraj=1, options=opts)
 
-    fname = local_data_path(__file__, n, m) / f'g1-{g1}_g2-{g2}_eta-{eta}_d-{D}_t-{times[-1]}-{len(times)}'
+    fname = local_data_path(__file__, n, m) / f'mc&{time.time_ns()}_{build_filename(**locals())}'
     qsave(data, str(fname))
 
     return data, fname
 
 
-def animate_trajectory(fname, alpha_max=7.5):
-    data = qload(str(fname))
+def evolve_me(ts, phi0, g1, g2, eta, D, n, m, dim):
+    H, J = build_system(g1, g2, eta, D, n, m, dim, full_lv=False)
 
-    states = data.states[0]
+    opts = Options(num_cpus=4,
+                   nsteps=5000,
+                   store_states=True,
+                   store_final_state=True)
+    data = mesolve(H, phi0, ts, c_ops=J, options=opts)
+
+    fname = local_data_path(__file__, n, m) / f'me&{time.time_ns()}_{build_filename(**locals())}'
+    qsave(data, str(fname))
+
+    return data, fname
+
+
+def animate_trajectory(fpath, alpha_max=7.5):
+    fname = fpath.name
+    data = qload(str(fpath))
+
+    states = data.states[0] if fname.startswith('mc') else data.states
     times = data.times
-    N = len(states)
+    N = len(times)
 
     fig, ax = plt.subplots(figsize=(6, 5))
 
@@ -56,10 +75,22 @@ def animate_trajectory(fname, alpha_max=7.5):
     xvec = np.linspace(-alpha_max, alpha_max, 200)
 
     def _calc_wigner(i):
-        return wigner_ss(states[i], xvec)
+        return times[i], wigner_ss(states[i], xvec)
 
-    _res = Parallel(n_jobs=5, verbose=1)(delayed(_calc_wigner)(i) for i in range(N))
-    Rss = np.array(_res)
+    T, Rss = [], []
+    nsmall = int(0.1 * N)
+    for i in range(nsmall):
+        T.append(times[i])
+        Rss.append(np.array(wigner_ss(states[i], xvec)))
+    for i in range(nsmall, N, 10):
+        T.append(times[i])
+        Rss.append(np.array(wigner_ss(states[i], xvec)))
+
+    # _res = Parallel(n_jobs=5, verbose=1)(delayed(_calc_wigner)(i) for i in range(0, N, 10))
+    # _t, _x = zip(*_res)
+    Rss = np.array(Rss)
+    # T = np.array(_t)
+    N = len(T)
     norm = Normalize(Rss.min(), Rss.max())
 
     cf = ax.pcolormesh(xvec, xvec, Rss[0],
@@ -73,27 +104,37 @@ def animate_trajectory(fname, alpha_max=7.5):
         ax.clear()
         ax.pcolormesh(xvec, xvec, Rss[i],
                       norm=norm, cmap='magma', shading='nearest', rasterized=True)
-        ax.set_title(rf'$t = {times[i]}$')
+        ax.set_title(rf'$t = {T[i]}$')
 
         return []
 
-    interval = 0.5  # in seconds
+    interval = 0.1  # in seconds
     ani = animation.FuncAnimation(fig, animate, N, interval=interval * 1e3, blit=True)
 
-    n, m = map(int, fname.parent.name.split('_'))
-    ani.save(local_plot_path(__file__, n, m) / (fname.name[:-3] + '.mp4'))
+    n, m = map(int, fpath.parent.name.split('_'))
+    ani.save(local_plot_path(__file__, n, m) / (fname[:-3] + '.mp4'))
 
     return ani
 
 
 if __name__ == '__main__':
     params = {
-        'g1': 0,
-        'g2': 0.02,
-        'eta': 3.,
+        'g1': 1.,
+        'g2': POINTS[3][1][0],
+        'eta': POINTS[3][1][1],
         'D': 0.4,
-        'n': 4,
-        'm': 4,
+        'n': 3,
+        'm': 3,
+        'dim': POINTS[3][1][2]
+    }
+
+    params = {
+        'g1': 1.,
+        'g2': 0.8,
+        'eta': 1.3,
+        'D': 0.4,
+        'n': 3,
+        'm': 2,
         'dim': 50
     }
 
@@ -101,10 +142,15 @@ if __name__ == '__main__':
 
     n = params['n']
 
-    theta_mid = 2 * np.pi / n
-    phi0 = coherent(params['dim'], beta * np.exp(1j * theta_mid))
+    theta_mid = np.exp(1j * 2 * np.pi / n)
+    phi0 = (
+        coherent(params['dim'], beta * np.exp(1j * np.pi / n)) +
+        coherent(params['dim'], beta * np.exp(1j * 3 * np.pi / n))
+    ) / np.sqrt(2)
+    phi0 = basis(params['dim'], 2)
+    # phi0 = coherent(params['dim'], 2.5 * beta * np.random.rand() * np.exp(1j * 2 * np.pi * np.random.rand()))
 
-    times = np.linspace(0, 1e3, 10000)
+    times = np.linspace(0, 100, 5000)
 
-    data, fpath = evolve(times, phi0, **params)
+    data, fpath = evolve_me(times, phi0, **params)
     animate_trajectory(fpath)
