@@ -3,8 +3,8 @@ import numpy as np
 
 from cycler import cycler
 
-DATA_PATH = Path('~/Documents/data/gqvdp/').expanduser()
-PLOT_PATH = Path('~/Documents/codes/qam_with_sddnl_osc/plots/').expanduser()
+DATA_PATH = Path(__file__).parent.parent / 'data'
+PLOT_PATH = Path(__file__).parent.parent / 'plots'
 TOL = 1e-20
 
 
