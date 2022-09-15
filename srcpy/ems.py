@@ -1,14 +1,15 @@
 import numpy as np
 from qutip import expect, liouvillian, vector_to_operator, qeye, Qobj
 
-from utils import DATA_PATH, TOL
+from utils import TOL, local_data_path
 from model import build_system
+from constants import POINTS, DELTA
 
 
 __all__ = ['metastable_states']
 
 
-def metastable_states(g2, eta, D, n, m, dim=50, g1=1, adag=False):
+def metastable_states(g2, eta, D, n, m, dim=50, g1=1):
     r"""Computes the metast states of the oscillator.
 
     Parameters
@@ -27,8 +28,6 @@ def metastable_states(g2, eta, D, n, m, dim=50, g1=1, adag=False):
         the cut-off dimension of the Hilbert space.
     g1 : float
         the linear dissipative rate (the default is 1).
-    adag : bool
-        wether to use $a$ or $a^\dagger$ in the linear lindblad term (the default is False).
 
     Returns
     -------
@@ -41,17 +40,16 @@ def metastable_states(g2, eta, D, n, m, dim=50, g1=1, adag=False):
     projectors
         list of left projectors onto the metastable states, in the same order as `ems` (size `n`).
     """
-    dirpath = DATA_PATH / 'ems' / f'{"adag" if adag else "a"}/{n}_{m}'
-    fname = f'{g1}_{g2:.6f}_{eta:.6f}_{D}_{dim}'
+    dirpath = local_data_path(__file__, n, m)
+    fname = f'{g1}_{g2}_{eta}_{D}_{dim}'
 
     files = ['EMS', 'L', 'R', 'P']
     if all((dirpath / f'{fname}-{post}.npy').exists() for post in files):
         EMS, Ls, Rs, Ps = [np.load(dirpath / f'{fname}-{post}.npy') for post in files]
         return list(map(Qobj, EMS)), list(map(Qobj, Ls)), list(map(Qobj, Rs)), list(map(Qobj, Ps))
     else:
-        L = build_system(g1, g2, eta, D, n=n, m=m, dim=dim, adag=adag)
+        L = build_system(g1, g2, eta, D, n=n, m=m, dim=dim)
         output = ems_qvdp(L, n=n, max_eigvals=n + 2)
-        dirpath.mkdir(parents=True, exist_ok=True)
         for j, post in enumerate(files):
             np.save(dirpath / f'{fname}-{post}.npy', np.array(output[j]))
         return output
@@ -178,3 +176,13 @@ def ems_qvdp_4(ev, evl, evr, rho_ss, Id):
     ]
 
     return mus, L, R, projs
+
+
+if __name__ == '__main__':
+    for n, points in POINTS.items():
+        for g2, eta, _ in points:
+            for dim in [10, 15, 20, 30, 40, 50]:
+                try:
+                    metastable_states(g2, eta, DELTA, n, n, dim=dim)
+                except:
+                    print(n, g2, eta, dim)

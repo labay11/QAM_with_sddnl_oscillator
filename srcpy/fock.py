@@ -1,3 +1,4 @@
+"""Utility function to plot the Fock occupation probability of a state."""
 import numpy as np
 import matplotlib.pyplot as plt
 import qutip as qt

@@ -42,5 +42,6 @@ eigvals(
     dim::Int,
     n_ev::Int = 10) = eigvals(build_system(γ2, η, Δ, n, m, dim), n_ev)
 
-amplitude(
-    γ2::Float64, η::Float64, n::Int, m::Int) = (2 * η * n / (m * γ2))^(1 / (2 * m - n))
+amplitude(γ2::Float64, η::Float64, n::Int, m::Int) = (2 * η * n / (m * γ2))^(1 / (2 * m - n))
+
+amplitude(γ2::Float64, η::Float64, n) = (2 * η / γ2)^(1 / n)
