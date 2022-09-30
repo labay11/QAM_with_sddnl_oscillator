@@ -10,6 +10,9 @@ function local_path(basepath::AbstractString, fname::AbstractString, n::Int=-1, 
     if n > 0 && m > 0
         path = joinpath(path, "$(n)_$(m)")
     end
+
+    mkpath(path)
+
     path
 end
 

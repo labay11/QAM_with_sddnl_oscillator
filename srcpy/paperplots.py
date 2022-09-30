@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 from model import build_system, eigvals
-from ev_plot import plot_gap
+from gap import plot_gap
 from memory import plot_memory
 from storing_capacity import simple_plot, max_storage_capacity
 from utils import latexify, local_plot_path, local_data_path, MARKERS
@@ -198,5 +198,5 @@ def fig4b():
 if __name__ == '__main__':
     # fig1()
     # fig2()
-    # fig3()
-    fig4b()
+    fig3()
+    # fig4b()

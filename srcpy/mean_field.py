@@ -18,6 +18,14 @@ def _mf(x, g1, g2, eta, D, n, m):
     return [*mf(x[0], x[1], g1, g2, eta, D, n, m)]
 
 
+def mf_amplitude(R, g1, g2, eta, D, n, m):
+    return (
+        - 0.5 * g1 * R
+        - 0.5 * m * g2 * R**(2 * m - 1)
+        - n * eta * R**(n - 1) * np.sqrt(1 - (D / (n * eta * R**(n - 2)))**2)
+    )
+
+
 def plot(fig, ax, g2, eta, D, n, m, g1=1, colorbar=False):
     mu = amplitude(g2, eta, n, m)
     Rs = np.linspace(0, 2 * mu, 100)

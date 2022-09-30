@@ -29,6 +29,7 @@ def local_plot_path(fname, nl_eta=None, nl_dis=None):
 
 
 def amplitude(g2, eta, n, m, **other_params):
+    """returns the theoretical amplitude of the lobes"""
     if n == 2 * m:
         return np.power(1 / (m * (4 * eta - g2)), 1 / (2 * m - 2))
 
@@ -36,13 +37,30 @@ def amplitude(g2, eta, n, m, **other_params):
 
 
 def driving_dissipation_ratio(amplitude, nl_eta, nl_dis):
+    """returns the theoretical driving disspation ration needed to achieve the given amplitude"""
     return np.power(amplitude, 2 * nl_dis - nl_eta) * nl_dis / (2 * nl_eta)
 
 
 PARAMS_ORDER = ['g1', 'g2', 'eta', 'D', 'dim', 't']
 
 
-def build_filename(**params):
+def build_filename(ext=None, **params):
+    """Creates a file name based on the oscillator parameters to store simulation data.
+
+    Parameters
+    ----------
+    ext : str
+         file name extension, must include the `.`  (the default is None).
+    **params : dict(str: float/1D-array)
+        oscillator parameters. Note that only those params in `PARAMS_ORDER` will be used for the filename,
+        and they will appear in the given order.
+
+    Returns
+    -------
+    filename
+        Params are separated using `_` and param names and values are separated using `&`.
+        If the value is a 1D-array `x`, the name will be `x[0]&x[-1]&len(x)`.
+    """
     fname = []
     for k in PARAMS_ORDER:
         if k in params:
@@ -51,10 +69,11 @@ def build_filename(**params):
             array = params[k + 's']
             fname.append(f'{k}s{VALUE_SEPARATOR}{array[0]}{VALUE_SEPARATOR}{array[-1]}{VALUE_SEPARATOR}{len(array)}')
 
-    return PARAM_SEPARATOR.join(fname)
+    return PARAM_SEPARATOR.join(fname) + (ext if ext else None)
 
 
 def parse_filename(fname):
+    """Parses the filename as saved by `build_filename`"""
     parts = fname.split(PARAM_SEPARATOR)
 
     params = {}
@@ -99,6 +118,10 @@ PAPER_TYPES = {
 
 GOLDEN_MEAN = (np.sqrt(5) - 1.0) / 2.0
 INCHES_PER_PT = 1.0 / 72.27  # Convert pt to inch
+
+
+def cmap_clamp(cmap, x, xmin, xmax):
+    return cmap((x - xmin) / (xmax - xmin))
 
 
 def latex_figsize(type, fract=None):
