@@ -69,7 +69,7 @@ def build_filename(ext=None, **params):
             array = params[k + 's']
             fname.append(f'{k}s{VALUE_SEPARATOR}{array[0]}{VALUE_SEPARATOR}{array[-1]}{VALUE_SEPARATOR}{len(array)}')
 
-    return PARAM_SEPARATOR.join(fname) + (ext if ext else None)
+    return PARAM_SEPARATOR.join(fname) + (ext if ext else '')
 
 
 def parse_filename(fname):
@@ -216,6 +216,7 @@ def latexify(pyplot, type='def', fract=None, palette='default', **kwargs):
     params.update({
         'figure.figsize': latex_figsize(type, fract),
         'axes.prop_cycle': COLOR_CYCLES[palette] if palette in COLOR_CYCLES else palette,
+        'savefig.transparent': 'beamer' in type,
         **kwargs
     })
     pyplot.rcParams.update(params)

@@ -63,7 +63,7 @@ def animate_trajectory(fpath, alpha_max=7.5):
     fname = fpath.name
     data = qload(str(fpath))
 
-    states = data.states[0] if fname.startswith('mc') else data.states
+    states = np.mean(data.states, axis=0) if fname.startswith('mc') else data.states
     times = data.times
     N = len(times)
 
@@ -118,39 +118,23 @@ def animate_trajectory(fpath, alpha_max=7.5):
 
 
 if __name__ == '__main__':
+    n = 4
     params = {
         'g1': 1.,
-        'g2': POINTS[3][1][0],
-        'eta': POINTS[3][1][1],
+        'g2': POINTS[n][1][0],
+        'eta': POINTS[n][1][1],
         'D': 0.4,
-        'n': 3,
-        'm': 3,
-        'dim': POINTS[3][1][2]
-    }
-
-    params = {
-        'g1': 1.,
-        'g2': 0.8,
-        'eta': 1.3,
-        'D': 0.4,
-        'n': 3,
-        'm': 2,
-        'dim': 50
+        'n': n,
+        'm': n,
+        'dim': POINTS[n][1][2]
     }
 
     beta = amplitude(**params)
 
-    n = params['n']
-
     theta_mid = np.exp(1j * 2 * np.pi / n)
-    phi0 = (
-        coherent(params['dim'], beta * np.exp(1j * np.pi / n)) +
-        coherent(params['dim'], beta * np.exp(1j * 3 * np.pi / n))
-    ) / np.sqrt(2)
-    phi0 = basis(params['dim'], 2)
-    # phi0 = coherent(params['dim'], 2.5 * beta * np.random.rand() * np.exp(1j * 2 * np.pi * np.random.rand()))
+    phi0 = coherent(params['dim'], 2 * beta * np.exp(1j * np.pi / 8))
 
-    times = np.linspace(0, 100, 5000)
+    times = np.logspace(-2, 2.2, 50000)
 
     data, fpath = evolve_me(times, phi0, **params)
     animate_trajectory(fpath)

@@ -56,7 +56,7 @@ def storing_capacity(p, alphas, tol=1e-9, infidelity=True):
             for _p in p]
 
 
-def simple_plot(ps, fig=None, ax=None, show_top=False):
+def simple_plot(ps, fig=None, ax=None, show_top=False, show_unbounded=True):
     savefig = False
     if fig is None or ax is None:
         latexify(plt, type='paper', fract=0.2, palette='default')
@@ -72,7 +72,8 @@ def simple_plot(ps, fig=None, ax=None, show_top=False):
     for p, sc, sc2 in zip(ps, capacities, capacities_2):
         c = p - 2
         ax.plot(alphas, sc, label=f'{p}', c=f'C{c}')
-        ax.plot(alphas, sc2, ls='--', c=f'C{c}')
+        if show_unbounded:
+            ax.plot(alphas, sc2, ls='--', c=f'C{c}')
 
         if show_top:
             sc_max_j = np.argmax(sc)
