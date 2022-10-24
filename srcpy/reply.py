@@ -4,6 +4,7 @@ import qutip as qt
 
 from model import build_system
 from wigner import plot_multiple_wigner
+from thermo_limit import plot_thermodynamic_limit
 from utils import latexify, local_plot_path
 from constants import POINTS
 
@@ -41,4 +42,19 @@ def comparison_g1(g1s=[0, 1e-8, 1e-4, 1e-2], n=4, point=1):
     fig.savefig(local_plot_path(__file__) / 'comparison_g1.pdf')
 
 
-comparison_g1()
+def comparison_thermodynamic():
+    latexify(plt, type='preprint', fract=0.3)
+
+    fig, axs = plt.subplots(ncols=2, nrows=2, sharex=True, gridspec_kw={'wspace': 0.12, 'hspace': 0.05})
+
+    plot_thermodynamic_limit(np.linspace(0, 0.5, 100), 0.4, 3, 3, 200, fig=fig, axs=axs[:, 0])
+    plot_thermodynamic_limit(np.linspace(0, 0.5, 100), 0.4, 4, 4, 200, fig=fig, axs=axs[:, 1])
+
+    for j in range(2):
+        axs[j, 1].set_ylabel('')
+        axs[1, j].text(0.1, 0.8, rf'$n = {j + 3}$', va='center', ha='left', transform=axs[1, j].transAxes)
+
+    fig.savefig(local_plot_path(__file__) / 'comparison_thermodynamic.pdf')
+
+
+comparison_thermodynamic()

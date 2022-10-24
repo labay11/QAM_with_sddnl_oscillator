@@ -56,15 +56,18 @@ def wigner_trajectory(n, fname, indices, title_times=None, show_amplitude=True):
 
     for ax, title in zip(axs, title_times):
         ax.set_ylabel('')
-        ax.text(0.5, 0.99, rf'$\gamma_1 t = {title}$', color='w', transform=ax.transAxes, va='top', ha='center', fontsize=6)
+        ax.text(0.5, 0.99, rf'$\gamma_1 t = {title}$',
+                color='w', transform=ax.transAxes, va='top', ha='center', fontsize=6)
 
         if show_amplitude:
-            ax.scatter(np.real(lobes), np.imag(lobes), marker='x', color='k')
+            ax.scatter(np.real(lobes), np.imag(lobes), marker='x', color='w')
 
     axs[0].set_ylabel(r'$\rm{Im}(\alpha)$')
 
     fig.savefig(local_plot_path(__file__) / (fname + '.pdf'))
 
 
-wigner_trajectory(4, 'mc&1665580589898012422_g1&1.0_g2&0.1_eta&1.1423118881998557_D&0.4_dim&40',
-                  [0, 1000, 2500, 4600, 4999], ['0', '0.06', r'1', '50', r'100'])
+wigner_trajectory(
+    4,
+    'me&1665746118693154514_g1&1.0_g2&0.1_eta&1.1423118881998557_D&0.4_dim&40_ts&0.01&125.89254117941675&55000',
+    [0, 2500, 15000, 50000, 54999], ['0', '0.02', '0.1', '50', '125'])
