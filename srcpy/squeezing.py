@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import qutip as qt
 
 from model import build_system
+from ems import metastable_states
 from utils import local_data_path, local_plot_path, latexify, amplitude
 
 
@@ -30,23 +31,20 @@ def parse_filename(fname):
 def squeezing_amplitude(betas, d, n, m, g=0.2):
     N = len(betas)
 
-    EV = np.zeros((N, 2))
+    EV = np.zeros((N, 2, n))
 
-    num = np.diag(range(200))
+    num = np.diag(range(80))
     num2 = num**2
 
     for j in range(1, N):
         beta = amplitude(g, betas[j] * g, n, m)
-        dim = min(max(int(round(beta * 3)), 80), 200)
-        L = build_system(1.0, g, betas[j] * g, d, n, m, dim)
-        # ss = steadystate.iterative(H, J)
+        dim = min(max(int(round(beta * 3)), 40), 80)
         try:
-            ss = qt.steadystate(L).data.toarray()
-
-            EV[j, 0] = np.trace(num[:dim, :dim] @ ss)
-            EV[j, 1] = np.trace(num2[:dim, :dim] @ ss)
+            ems, *_ = metastable_states(g, betas[j] * g, d, n, m, dim)
+            EV[j, 0, :] = [np.trace(num[:dim, :dim] @ ss) for ss in ems[1:]]
+            EV[j, 1, :] = [np.trace(num2[:dim, :dim] @ ss) for ss in ems[1:]]
         except Exception:
-            EV[j, :] = np.nan
+            EV[j, :, :] = np.nan
 
     np.save(local_data_path(__file__, n, m) / f"beta-{betas[0]}-{betas[-1]}-{N}_d-{d}_g-{g}.npy", EV)
 
@@ -171,8 +169,8 @@ def plot_gd_comparison(g, d):
 if __name__ == '__main__':
     parser = ArgumentParser()
 
-    parser.add_argument('-g', type=float, help='g2')
-    parser.add_argument('-d', type=float, help='delta')
+    parser.add_argument('-g', type=float, help='g2', default=0.2)
+    parser.add_argument('-d', type=float, help='delta', default=0.4)
     parser.add_argument('-n', type=int, help='nl_eta == nl_dis')
     parser.add_argument('-m', type=int, help='method to use (1: me, 2: deterministic)')
     parser.add_argument('--bmin', type=float, help='beta min')
