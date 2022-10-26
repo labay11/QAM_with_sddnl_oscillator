@@ -1,9 +1,8 @@
 import numpy as np
-from qutip import expect, liouvillian, vector_to_operator, qeye, Qobj
+import qutip as qt
 
 from utils import TOL, local_data_path
 from model import build_system
-from constants import POINTS, DELTA
 
 
 __all__ = ['metastable_states']
@@ -46,7 +45,7 @@ def metastable_states(g2, eta, D, n, m, dim=50, g1=1):
     files = ['EMS', 'L', 'R', 'P']
     if all((dirpath / f'{fname}-{post}.npy').exists() for post in files):
         EMS, Ls, Rs, Ps = [np.load(dirpath / f'{fname}-{post}.npy') for post in files]
-        return list(map(Qobj, EMS)), list(map(Qobj, Ls)), list(map(Qobj, Rs)), list(map(Qobj, Ps))
+        return list(map(qt.Qobj, EMS)), list(map(qt.Qobj, Ls)), list(map(qt.Qobj, Rs)), list(map(qt.Qobj, Ps))
     else:
         L = build_system(g1, g2, eta, D, n=n, m=m, dim=dim)
         output = ems_qvdp(L, n=n, max_eigvals=n + 2)
@@ -56,14 +55,14 @@ def metastable_states(g2, eta, D, n, m, dim=50, g1=1):
 
 
 def ems_qvdp(L_or_H, Js=None, n=2, max_eigvals=5):
-    L = liouvillian(L_or_H, Js) if Js else L_or_H
+    L = qt.liouvillian(L_or_H, Js) if Js else L_or_H
     eigvals, eigvecsr = L.eigenstates(sort='high', eigvals=max_eigvals)
     _, eigvecsl = L.dag().eigenstates(sort='high', eigvals=max_eigvals)
 
-    rho_ss = vector_to_operator(eigvecsr[0])
+    rho_ss = qt.vector_to_operator(eigvecsr[0])
     rho_ss = rho_ss / rho_ss.tr()
 
-    Id = qeye(rho_ss.shape[0])
+    Id = qt.qeye(rho_ss.shape[0])
 
     if n == 2:
         return ems_qvdp_2(eigvals, eigvecsl, eigvecsr, rho_ss, Id)
@@ -76,13 +75,13 @@ def ems_qvdp(L_or_H, Js=None, n=2, max_eigvals=5):
 
 
 def ems_qvdp_2(eigv, evl, evr, rho_ss, Id):
-    l1 = vector_to_operator(evl[1]).tidyup(atol=TOL)
-    r1 = vector_to_operator(evr[1]).tidyup(atol=TOL)
+    l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
+    r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
 
     l1 = (l1 + l1.dag()) * 0.5
     r1 = (r1 + r1.dag()) * 0.5
 
-    l1 /= expect(l1, r1)
+    l1 /= qt.expect(l1, r1)
     eigv1 = l1.eigenenergies()
     c1min, c1max = eigv1[0], eigv1[-1]
 
@@ -101,16 +100,16 @@ def ems_qvdp_2(eigv, evl, evr, rho_ss, Id):
 
 
 def ems_qvdp_3(ev, evl, evr, rho_ss, Id):
-    l1 = vector_to_operator(evl[1]).tidyup(atol=TOL)
-    r1 = vector_to_operator(evr[1]).tidyup(atol=TOL)
-    l2 = vector_to_operator(evl[2]).tidyup(atol=TOL)
-    r2 = vector_to_operator(evr[2]).tidyup(atol=TOL)
+    l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
+    r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
+    l2 = qt.vector_to_operator(evl[2]).tidyup(atol=TOL)
+    r2 = qt.vector_to_operator(evr[2]).tidyup(atol=TOL)
 
     sgn = -1 if np.imag(ev[1]) > 0 else 1
     L, R = [(l1 + l2) / 2, sgn * 1j * (l1 - l2) / 2], [(r1 + r2) / 2, sgn * 1j * (r1 - r2) / 2]
     ems_ev = []
     for k in range(2):
-        L[k] /= expect(L[k], R[k])
+        L[k] /= qt.expect(L[k], R[k])
 
         evlv = L[k].eigenenergies()
         ems_ev.append((evlv[0], evlv[-1]))  # (min, max)
@@ -138,21 +137,21 @@ def ems_qvdp_4(ev, evl, evr, rho_ss, Id):
     Dcs = []
     sgn = -1 if np.imag(ev[1]) > 0 else 1
 
-    l1 = vector_to_operator(evl[1]).tidyup(atol=TOL)
-    l2 = vector_to_operator(evl[2]).tidyup(atol=TOL)
+    l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
+    l2 = qt.vector_to_operator(evl[2]).tidyup(atol=TOL)
 
     L.append(0.5 * (l1 + l2))
     L.append(0.5 * sgn * 1j * (l1 - l2))
-    L.append(vector_to_operator(evl[3]).tidyup(atol=TOL))
+    L.append(qt.vector_to_operator(evl[3]).tidyup(atol=TOL))
 
-    r1 = vector_to_operator(evr[1]).tidyup(atol=TOL)
-    r2 = vector_to_operator(evr[2]).tidyup(atol=TOL)
+    r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
+    r2 = qt.vector_to_operator(evr[2]).tidyup(atol=TOL)
 
     R.append(0.5 * (r1 + r2))
     R.append(0.5 * sgn * 1j * (r1 - r2))
-    R.append(vector_to_operator(evr[3]).tidyup(atol=TOL))
+    R.append(qt.vector_to_operator(evr[3]).tidyup(atol=TOL))
     for j in range(3):
-        L[j] /= expect(L[j], R[j])
+        L[j] /= qt.expect(L[j], R[j])
         evlv = L[j].eigenenergies()
         ems_ev.append((evlv[0], evlv[-1]))  # (min, max)
         Dcs.append(evlv[-1] - evlv[0])

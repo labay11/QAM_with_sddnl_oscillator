@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.colors import Normalize
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from qutip import rand_ket, coherent, expect, mcsolve, mesolve, basis
+from qutip import rand_ket, coherent, expect, mcsolve, mesolve
 from qutip.solver import Options
 from qutip.fileio import qsave, qload
 # from joblib import Parallel, delayed

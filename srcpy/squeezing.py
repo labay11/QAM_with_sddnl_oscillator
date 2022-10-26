@@ -3,9 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import qutip as qt
 
-from model import build_system
 from ems import metastable_states
-from utils import local_data_path, local_plot_path, latexify, amplitude
+from utils import local_data_path, local_plot_path, latexify, driving_dissipation_ratio
 
 
 def parse_linspace(data):
@@ -33,17 +32,18 @@ def squeezing_amplitude(betas, d, n, m, g=0.2):
 
     EV = np.zeros((N, 2, n))
 
-    num = np.diag(range(80))
-    num2 = num**2
-
     for j in range(1, N):
-        beta = amplitude(g, betas[j] * g, n, m)
-        dim = min(max(int(round(beta * 3)), 40), 80)
+        eta = driving_dissipation_ratio(betas[j], n, m) * g
+        dim = min(max(int(round(betas[j]**2)), 40), 100)
+        num = qt.num(dim)
+        num2 = num**2
         try:
-            ems, *_ = metastable_states(g, betas[j] * g, d, n, m, dim)
-            EV[j, 0, :] = [np.trace(num[:dim, :dim] @ ss) for ss in ems[1:]]
-            EV[j, 1, :] = [np.trace(num2[:dim, :dim] @ ss) for ss in ems[1:]]
-        except Exception:
+            ems, *_ = metastable_states(g, eta, d, n, m, dim)
+            EV[j, 0, :] = [np.real(qt.expect(num, ss)) for ss in ems]
+            EV[j, 1, :] = [np.real(qt.expect(num2, ss)) for ss in ems]
+            print(j, EV[j])
+        except Exception as e:
+            print(j, e)
             EV[j, :, :] = np.nan
 
     np.save(local_data_path(__file__, n, m) / f"beta-{betas[0]}-{betas[-1]}-{N}_d-{d}_g-{g}.npy", EV)
@@ -62,6 +62,9 @@ def plot_lines(files, outpath, labels=None, right_amp=False):
 
     for file, lbl in zip(files, labels):
         ev = np.real(np.load(file))
+        if len(ev.shape) == 3:
+            ev = np.mean(ev, axis=2)
+        print(ev)
         betas, g, D = parse_filename(file.stem)
         sq = np.sqrt(ev[:, 1] - ev[:, 0]**2) / np.sqrt(ev[:, 0])
         sq[sq < 0] = np.nan
@@ -128,8 +131,8 @@ def plot_gd_comparisons():
 
 
 def plot_nm_comparisons(d=None, g=None):
-    ds = [0.1, 0.2, 0.5, 1, 1.5]
-    gs = [0.1, 0.2, 0.4, 0.8, 1.2]
+    ds = [0.1, 0.2, 0.5, 1, 1.5] if d is None else [d]
+    gs = [0.1, 0.2, 0.4, 0.8, 1.2] if g is None else [g]
 
     dirpath = local_data_path(__file__)
     outpath = local_plot_path(__file__, 'n', 'm')
@@ -142,11 +145,13 @@ def plot_nm_comparisons(d=None, g=None):
 
     for d in ds:
         for g in gs:
-            fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-500_d-{d}_g-{g}.npy' for n, m in mnms]
+            fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-100_d-{d}_g-{g}.npy' for n, m in mnms]
             fpaths = [f for f in fpaths if f.exists()]
+            if not fpaths:
+                continue
             plot_lines(fpaths, outpath / f'd-{d}_g-{g}.pdf', labels)
             for n_ in [3, 4, 5]:
-                fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-500_d-{d}_g-{g}.npy' for n, m in mnms if n == n_]
+                fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-100_d-{d}_g-{g}.npy' for n, m in mnms if n == n_]
                 fpaths = [f for f in fpaths if f.exists()]
                 plot_lines(fpaths, outpath / f'n-{n_}_d-{d}_g-{g}.pdf', [f'${n} - {m}$' for n, m in mnms if n == n_])
 
@@ -173,7 +178,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', type=float, help='delta', default=0.4)
     parser.add_argument('-n', type=int, help='nl_eta == nl_dis')
     parser.add_argument('-m', type=int, help='method to use (1: me, 2: deterministic)')
-    parser.add_argument('--bmin', type=float, help='beta min')
+    parser.add_argument('--bmin', type=float, help='beta min', default=0.0001)
     parser.add_argument('--bmax', type=float, help='beta max')
     parser.add_argument('--bnum', type=int, help='beta num')
 
@@ -182,7 +187,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.plot:
-        plot_nm_comparisons()
+        plot_nm_comparisons(args.d, args.g)
     else:
         betas = np.linspace(args.bmin, args.bmax, args.bnum)
         squeezing_amplitude(betas, args.d, args.n, args.m, g=args.g)
