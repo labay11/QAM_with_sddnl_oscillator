@@ -30,7 +30,7 @@ def parse_filename(fname):
 def squeezing_amplitude(betas, d, n, m, g=0.2):
     N = len(betas)
 
-    EV = np.zeros((N, 2, n))
+    EV = np.zeros((N, 2, n), dtype=complex)
 
     for j in range(1, N):
         eta = driving_dissipation_ratio(betas[j], n, m) * g
@@ -39,9 +39,9 @@ def squeezing_amplitude(betas, d, n, m, g=0.2):
         num2 = num**2
         try:
             ems, *_ = metastable_states(g, eta, d, n, m, dim)
-            EV[j, 0, :] = [np.real(qt.expect(num, ss)) for ss in ems]
-            EV[j, 1, :] = [np.real(qt.expect(num2, ss)) for ss in ems]
-            print(j, EV[j])
+            EV[j, 0, :] = [qt.expect(num, ss) for ss in ems]
+            EV[j, 1, :] = [qt.expect(num2, ss) for ss in ems]
+            print(j, EV[j], [(em.isoper, em.isherm, em.tr()) for em in ems])
         except Exception as e:
             print(j, e)
             EV[j, :, :] = np.nan
