@@ -20,7 +20,7 @@ export LC_NUMERIC="en_US.UTF-8"
 #     done
 # done
 
-run2 -t 48:00 -n "sq32" "python squeezing.py -n 2 -m 1 --bmin 0 --bmax 10 --bnum 100"
+run2 -t 48:00 -n "sq21" "python squeezing.py -n 2 -m 1 --bmin 0 --bmax 10 --bnum 100"
 run2 -t 48:00 -n "sq32" "python squeezing.py -n 3 -m 2 --bmin 0 --bmax 10 --bnum 100"
 run2 -t 48:00 -n "sq43" "python squeezing.py -n 4 -m 3 --bmin 0 --bmax 10 --bnum 100"
 run2 -t 48:00 -n "sq34" "python squeezing.py -n 3 -m 4 --bmin 0 --bmax 10 --bnum 100"

@@ -178,10 +178,33 @@ def ems_qvdp_4(ev, evl, evr, rho_ss, Id):
 
 
 if __name__ == '__main__':
-    for n, points in POINTS.items():
-        for g2, eta, _ in points:
-            for dim in [10, 15, 20, 30, 40, 50]:
-                try:
-                    metastable_states(g2, eta, DELTA, n, n, dim=dim)
-                except:
-                    print(n, g2, eta, dim)
+    # from constants import POINTS, DELTA
+    #
+    # for n, points in POINTS.items():
+    #     for g2, eta, _ in points:
+    #         for dim in [10, 15, 20, 30, 40, 50]:
+    #             try:
+    #                 metastable_states(g2, eta, DELTA, n, n, dim=dim)
+    #             except:
+    #                 print(n, g2, eta, dim)
+    from wigner import plot_multiple_wigner
+    from utils import driving_dissipation_ratio
+    import matplotlib.pyplot as plt
+
+    betas = np.linspace(0.0001, 10, 100)[::10]
+    n = 3
+    m = 2
+    g2 = 0.2
+    D = 0.4
+
+    for beta in betas:
+        eta = driving_dissipation_ratio(beta, n, m) * g2
+        dim = min(max(int(round(beta**2)), 40), 100)
+        ems, *_ = metastable_states(g2, eta, D, n, m, dim)
+        num = qt.num(dim)
+        num2 = num**2
+        print([(em.tr(), qt.expect(num, em), qt.expect(num2, em)) for em in ems], eta, beta)
+        fig, axs = plt.subplots(ncols=len(ems))
+        plot_multiple_wigner(fig, axs, ems)
+        plt.title(str(beta))
+        plt.show()

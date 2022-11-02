@@ -49,30 +49,32 @@ def squeezing_amplitude(betas, d, n, m, g=0.2):
     np.save(local_data_path(__file__, n, m) / f"beta-{betas[0]}-{betas[-1]}-{N}_d-{d}_g-{g}.npy", EV)
 
 
-def plot_lines(files, outpath, labels=None, right_amp=False):
+def plot_lines(files, outpath, mnms, labels=None, right_amp=False):
     if not files:
         return
 
-    latexify(plt, type='preprint', fract=(0.33, 0.25))
+    latexify(plt, type='paper', fract=(0.2))
 
     if labels is None:
         labels = [None] * len(files)
 
     fig, ax = plt.subplots()
 
-    for file, lbl in zip(files, labels):
-        ev = np.real(np.load(file))
+    i_min = 1
+
+    for file, lbl, (n, m) in zip(files, labels, mnms):
+        ev = np.real(np.load(file))[i_min:]
         if len(ev.shape) == 3:
             ev = np.mean(ev, axis=2)
-        print(ev)
         betas, g, D = parse_filename(file.stem)
-        sq = np.sqrt(ev[:, 1] - ev[:, 0]**2) / np.sqrt(ev[:, 0])
-        sq[sq < 0] = np.nan
-        ax.plot(betas[10:], sq[10:], label=lbl)
+        # sq = np.sqrt(ev[:, 1] - ev[:, 0]**2) / ev[:, 0]
+        sq = (ev[:, 1] - ev[:, 0]**2) / ev[:, 0] - 1
+        # sq[sq < 0] = np.nan
+        ax.plot(betas[i_min:], sq, label=lbl)
 
-    ax.plot(betas[10:], np.ones(len(betas) - 10), c='k', ls=':', label=r'$1$')
+    ax.axhline(0.0, c='k', ls='-')
 
-    ax.set(xlabel=r'$\eta_n/\gamma_m$', ylabel='Squeezing')
+    ax.set(xlabel=r'$R$', ylabel='Squeezing')
     ax.legend(ncol=2)
 
     fig.savefig(outpath)
@@ -145,15 +147,15 @@ def plot_nm_comparisons(d=None, g=None):
 
     for d in ds:
         for g in gs:
-            fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-100_d-{d}_g-{g}.npy' for n, m in mnms]
+            fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0001-6.0-100_d-{d}_g-{g}.npy' for n, m in mnms]
             fpaths = [f for f in fpaths if f.exists()]
             if not fpaths:
                 continue
-            plot_lines(fpaths, outpath / f'd-{d}_g-{g}.pdf', labels)
+            plot_lines(fpaths, outpath / f'd-{d}_g-{g}.pdf', mnms, labels)
             for n_ in [3, 4, 5]:
-                fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-20.0-100_d-{d}_g-{g}.npy' for n, m in mnms if n == n_]
+                fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-6.0-60_d-{d}_g-{g}.npy' for n, m in mnms if n == n_]
                 fpaths = [f for f in fpaths if f.exists()]
-                plot_lines(fpaths, outpath / f'n-{n_}_d-{d}_g-{g}.pdf', [f'${n} - {m}$' for n, m in mnms if n == n_])
+                plot_lines(fpaths, outpath / f'n-{n_}_d-{d}_g-{g}.pdf', mnms, [f'${n} - {m}$' for n, m in mnms if n == n_])
 
 
 def plot_gd_comparison(g, d):

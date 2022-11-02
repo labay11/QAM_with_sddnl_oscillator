@@ -37,7 +37,7 @@ def fig1():
     for j in range(2):
         for k in range(2):
             axs[j, k].set(title='', xlabel='', ylabel='')
-            axs[j, k].text(0.05, 0.99, rf'$({chr(97 + k + 2 * j)})$ {labels[j][k]}',
+            axs[j, k].text(0.05, 0.99, rf'$({chr(97 + k + 2 * j)})$' + labels[j][k],
                            ha='left', va='top', c='white', transform=axs[j, k].transAxes)
             axs[j, k].tick_params(color='white')
     for j in range(2):
@@ -46,6 +46,37 @@ def fig1():
 
     fig.tight_layout(pad=0.15)
     fig.savefig(local_plot_path(__file__) / 'fig1.pdf')
+
+
+def fig1v2():
+    latexify(plt, type='paper', fract=0.15)
+
+    fig, axs = plt.subplots(ncols=3, sharex=True, sharey=True)
+
+    data = [
+        (0.2, 0.1, 3, 3), (0.2, 3**3 * 0.2 / 2, 3, 3), (1.5, 1.5 * 0.97, 3, 2)
+    ]
+    print(data)
+
+    states = []
+
+    for g2, eta, n, m in data:
+        L = build_system(1, g2, eta, 0.4, n, m, dim=150, adag=False)
+        states.append(qt.steadystate(L))
+
+    plot_multiple_wigner(fig, axs, states, colorbar=False)
+
+    labels = [r'$m = 3$', r'$m = 3$', r'$m=2$']
+
+    for j in range(3):
+        axs[j].set(title='', xlabel=r'$\rm{Re}(\alpha)$', ylabel='')
+        axs[j].text(0.05, 0.98, rf'$({chr(97 + j)})$ {labels[j]}',
+                    ha='left', va='top', c='white', transform=axs[j].transAxes)
+        axs[j].tick_params(color='white')
+    axs[0].set_ylabel(r'$\rm{Im}(\alpha)$')
+
+    fig.tight_layout(pad=0.1)
+    fig.savefig(local_plot_path(__file__) / 'fig1v2.pdf')
 
 
 def fig2():
@@ -167,11 +198,11 @@ def fig4b():
     # Panel A
 
     memorypath = local_data_path('memory', 4, 4)
-    dims = [40, 30, 20, 15]
+    dims = [40, 20, 15]
     files = [memorypath / f'1_0.1_1.1423118881998557_0.4_{dim}' for dim in dims]
 
     plot_memory(4, files, fig=fig, ax=axs['a'], labels=dims)
-    axs['a'].legend(loc='lower left', bbox_to_anchor=(0.05, 0.06), title=r'$\dim \mathcal{H}_{eff}$', ncol=2)
+    axs['a'].legend(loc='lower left', bbox_to_anchor=(0.09, 0.03), title=r'$\dim \mathcal{H}_{eff}$', ncol=1)
 
     # Panel B
 
@@ -196,7 +227,7 @@ def fig4b():
 
 
 if __name__ == '__main__':
-    # fig1()
+    # fig1v2()
     # fig2()
-    fig3()
-    # fig4b()
+    # fig3()
+    fig4b()
