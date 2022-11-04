@@ -4,43 +4,24 @@ import matplotlib.pyplot as plt
 import qutip as qt
 
 from ems import metastable_states
-from utils import local_data_path, local_plot_path, latexify, driving_dissipation_ratio
+from utils import local_data_path, local_plot_path, latexify,\
+    driving_dissipation_ratio, build_filename, amplitude, parse_filename
 
 
-def parse_linspace(data):
-    parts = data.split('-')
-    return np.linspace(float(parts[1]), float(parts[2]), int(parts[3]))
-
-
-def parse_filename(fname):
-    parts = fname.split('_')
-
-    if 'beta' in parts[0]:
-        betas = parse_linspace(parts[0])
-        D = float(parts[1].split('-')[1])
-        g = float(parts[2].split('-')[1])
-        return betas, g, D
-    else:
-        gs = parse_linspace(parts[0])
-        etas = parse_linspace(parts[1])
-        D = float(parts[2].split('-')[1])
-        return etas, gs, D
-
-
-def squeezing_amplitude(betas, d, n, m, g=0.2):
+def squeezing_amplitude(g2, betas, D, n, m):
     N = len(betas)
 
     EV = np.zeros((N, 4, n), dtype=complex)
 
     for j in range(1, N):
-        eta = driving_dissipation_ratio(betas[j], n, m) * g
+        eta = driving_dissipation_ratio(betas[j], n, m) * g2
         dim = min(max(int(round(3 * betas[j]**2)), 70), 120)
         opa = qt.destroy(dim)
         opa2 = opa**2
         num = qt.num(dim)
         num2 = num**2
         try:
-            ems, *_ = metastable_states(g, eta, d, n, m, dim)
+            ems, *_ = metastable_states(g2, eta, D, n, m, dim)
             EV[j, 0, :] = [qt.expect(num, ss) for ss in ems]
             EV[j, 1, :] = [qt.expect(num2, ss) for ss in ems]
             EV[j, 2, :] = [qt.expect(opa, ss) for ss in ems]
@@ -50,7 +31,33 @@ def squeezing_amplitude(betas, d, n, m, g=0.2):
             print(j, e)
             EV[j, :, :] = np.nan
 
-    np.save(local_data_path(__file__, n, m) / f"beta-{betas[0]}-{betas[-1]}-{N}_d-{d}_g-{g}.npy", EV)
+    np.save(local_data_path(__file__, n, m) / build_filename(**locals(), ext='.npy'), EV)
+
+
+def squeezing_driving(g2, etas, D, n, m):
+    N = len(betas)
+
+    EV = np.zeros((N, 4, n), dtype=complex)
+
+    for j in range(N):
+        beta = amplitude(g2, etas[j], n, m)
+        dim = min(max(int(round(3 * beta**2)), 70), 120)
+        opa = qt.destroy(dim)
+        opa2 = opa**2
+        num = qt.num(dim)
+        num2 = num**2
+        try:
+            ems, *_ = metastable_states(g2, etas[j], D, n, m, dim)
+            EV[j, 0, :] = [qt.expect(num, ss) for ss in ems]
+            EV[j, 1, :] = [qt.expect(num2, ss) for ss in ems]
+            EV[j, 2, :] = [qt.expect(opa, ss) for ss in ems]
+            EV[j, 3, :] = [qt.expect(opa2, ss) for ss in ems]
+            print(j, dim, EV[j], [(em.isoper, em.isherm, em.tr()) for em in ems])
+        except Exception as e:
+            print(j, e)
+            EV[j, :, :] = np.nan
+
+    np.save(local_data_path(__file__, n, m) / build_filename(**locals(), ext='.npy'), EV)
 
 
 def plot_lines(files, outpath, mnms, labels=None, right_amp=False):
@@ -192,6 +199,7 @@ if __name__ == '__main__':
     parser.add_argument('--bmin', type=float, help='beta min', default=0.0001)
     parser.add_argument('--bmax', type=float, help='beta max')
     parser.add_argument('--bnum', type=int, help='beta num')
+    parser.add_argument('-e', type=bool, action='store_true')
 
     parser.add_argument('-p', '--plot', action='store_true')
 
@@ -201,4 +209,7 @@ if __name__ == '__main__':
         plot_nm_comparisons(args.d, args.g)
     else:
         betas = np.linspace(args.bmin, args.bmax, args.bnum)
-        squeezing_amplitude(betas, args.d, args.n, args.m, g=args.g)
+        if args.e:
+            squeezing_driving(args.g, betas, args.d, args.n, args.m)
+        else:
+            squeezing_amplitude(args.g, betas, args.d, args.n, args.m)

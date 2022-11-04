@@ -5,7 +5,7 @@ from cycler import cycler
 
 DATA_PATH = Path(__file__).parent.parent / 'data'
 PLOT_PATH = Path(__file__).parent.parent / 'plots'
-TOL = 1e-12
+TOL = 1e-9
 
 
 PARAM_SEPARATOR = '_'
@@ -45,7 +45,7 @@ def driving_dissipation_ratio(amplitude, nl_eta, nl_dis):
     return np.power(amplitude, 2 * nl_dis - nl_eta) * nl_dis / (2 * nl_eta)
 
 
-PARAMS_ORDER = ['g1', 'g2', 'eta', 'D', 'dim', 't']
+PARAMS_ORDER = ['g1', 'g2', 'eta', 'beta', 'D', 'dim', 't']
 
 
 def build_filename(ext=None, **params):

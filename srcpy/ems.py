@@ -8,6 +8,9 @@ from model import build_system
 __all__ = ['metastable_states']
 
 
+CLEAN_TOL = 1e-12
+
+
 def metastable_states(g2, eta, D, n, m, dim=50, g1=1):
     r"""Computes the metast states of the oscillator.
 
@@ -38,6 +41,12 @@ def metastable_states(g2, eta, D, n, m, dim=50, g1=1):
         list of right eigenstates after normalisation (size `n`).
     projectors
         list of left projectors onto the metastable states, in the same order as `ems` (size `n`).
+
+    Raises
+    ------
+    ValueError
+        if it is not possible to claculate the metastable states because the shape of the eigenvalue distribution
+        is not valid for the oscillator parameters. Example: for n = m = 2` the first eigenvalue is not real.
     """
     dirpath = local_data_path(__file__, n, m)
     fname = f'{g1}_{g2}_{eta}_{D}_{dim}'
@@ -64,12 +73,15 @@ def ems_qvdp(L_or_H, Js=None, n=2, max_eigvals=5):
 
     Id = qt.qeye(rho_ss.shape[0])
 
+    eigopsl = [qt.vector_to_operator(evl).tidyup(atol=CLEAN_TOL) for evl in eigvecsl]
+    eigopsr = [qt.vector_to_operator(evr).tidyup(atol=CLEAN_TOL) for evr in eigvecsr]
+
     if n == 2:
-        return ems_qvdp_2(eigvals, eigvecsl, eigvecsr, rho_ss, Id)
+        return ems_qvdp_2(eigvals, eigopsl, eigopsr, rho_ss, Id)
     elif n == 3:
-        return ems_qvdp_3(eigvals, eigvecsl, eigvecsr, rho_ss, Id)
+        return ems_qvdp_3(eigvals, eigopsl, eigopsr, rho_ss, Id)
     elif n == 4:
-        return ems_qvdp_4(eigvals, eigvecsl, eigvecsr, rho_ss, Id)
+        return ems_qvdp_4(eigvals, eigopsl, eigopsr, rho_ss, Id)
     else:
         raise NotImplementedError
 
@@ -78,11 +90,8 @@ def ems_qvdp_2(eigv, evl, evr, rho_ss, Id):
     if not is_zero(np.imag(eigv[1])):
         raise ValueError(f'First eigenvalue must be real: {eigv[1]}')
 
-    l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
-    r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
-
-    l1 = (l1 + l1.dag()) * 0.5
-    r1 = (r1 + r1.dag()) * 0.5
+    l1 = (evl[1] + evl[1].dag()) * 0.5
+    r1 = (evr[1] + evr[1].dag()) * 0.5
 
     l1 /= qt.expect(l1, r1)
     eigv1 = l1.eigenenergies()
@@ -108,13 +117,10 @@ def ems_qvdp_3(ev, evl, evr, rho_ss, Id):
     if np.abs(ev[1] - np.conj(ev[2])) > TOL:
         raise ValueError(f'First and second are not conjugate of each other: {ev[1]}, {ev[2]}')
 
-    l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
-    r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
-    l2 = qt.vector_to_operator(evl[2]).tidyup(atol=TOL)
-    r2 = qt.vector_to_operator(evr[2]).tidyup(atol=TOL)
-
     sgn = -1 if np.imag(ev[1]) > 0 else 1
-    L, R = [(l1 + l2) / 2, sgn * 1j * (l1 - l2) / 2], [(r1 + r2) / 2, sgn * 1j * (r1 - r2) / 2]
+    L = [(evl[1] + evl[2]) / 2, sgn * 1j * (evl[1] - evl[2]) / 2]
+    R = [(evr[1] + evr[2]) / 2, sgn * 1j * (evr[1] - evr[2]) / 2]
+
     ems_ev = []
     for k in range(2):
         L[k] /= qt.expect(L[k], R[k])
@@ -147,24 +153,13 @@ def ems_qvdp_4(ev, evl, evr, rho_ss, Id):
     if np.abs(ev[1] - np.conj(ev[2])) > TOL:
         raise ValueError(f'First and second are not conjugate of each other: {ev[1]}, {ev[2]}')
 
-    L, R = [], []
     ems_ev = []
     Dcs = []
     sgn = -1 if np.imag(ev[1]) > 0 else 1
 
-    l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
-    l2 = qt.vector_to_operator(evl[2]).tidyup(atol=TOL)
+    L = [0.5 * (evl[1] + evl[2]), 0.5 * sgn * 1j * (evl[1] - evl[2]), evl[3]]
+    R = [0.5 * (evr[1] + evr[2]), 0.5 * sgn * 1j * (evr[1] - evr[2]), evr[3]]
 
-    L.append(0.5 * (l1 + l2))
-    L.append(0.5 * sgn * 1j * (l1 - l2))
-    L.append(qt.vector_to_operator(evl[3]).tidyup(atol=TOL))
-
-    r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
-    r2 = qt.vector_to_operator(evr[2]).tidyup(atol=TOL)
-
-    R.append(0.5 * (r1 + r2))
-    R.append(0.5 * sgn * 1j * (r1 - r2))
-    R.append(qt.vector_to_operator(evr[3]).tidyup(atol=TOL))
     for j in range(3):
         L[j] /= qt.expect(L[j], R[j])
         evlv = L[j].eigenenergies()
