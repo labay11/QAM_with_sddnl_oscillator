@@ -20,9 +20,12 @@ export LC_NUMERIC="en_US.UTF-8"
 #     done
 # done
 
-run2 -t 48:00 -n "sq21" "python squeezing.py -n 2 -m 1 --bmin 0 --bmax 10 --bnum 100"
-run2 -t 48:00 -n "sq32" "python squeezing.py -n 3 -m 2 --bmin 0 --bmax 10 --bnum 100"
-run2 -t 48:00 -n "sq43" "python squeezing.py -n 4 -m 3 --bmin 0 --bmax 10 --bnum 100"
-run2 -t 48:00 -n "sq34" "python squeezing.py -n 3 -m 4 --bmin 0 --bmax 10 --bnum 100"
-run2 -t 48:00 -n "sq33" "python squeezing.py -n 3 -m 3 --bmin 0 --bmax 10 --bnum 100"
-run2 -t 48:00 -n "sq44" "python squeezing.py -n 4 -m 4 --bmin 0 --bmax 10 --bnum 100"
+run2 -t 96:00 -n "sq21" "python squeezing.py -n 2 -m 1 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq22" "python squeezing.py -n 2 -m 2 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq23" "python squeezing.py -n 2 -m 3 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq32" "python squeezing.py -n 3 -m 2 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq33" "python squeezing.py -n 3 -m 3 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq34" "python squeezing.py -n 3 -m 4 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq43" "python squeezing.py -n 4 -m 3 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq44" "python squeezing.py -n 4 -m 4 --bmax 6 --bnum 100"
+run2 -t 96:00 -n "sq45" "python squeezing.py -n 4 -m 5 --bmax 6 --bnum 100"

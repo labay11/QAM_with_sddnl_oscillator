@@ -30,18 +30,22 @@ def parse_filename(fname):
 def squeezing_amplitude(betas, d, n, m, g=0.2):
     N = len(betas)
 
-    EV = np.zeros((N, 2, n), dtype=complex)
+    EV = np.zeros((N, 4, n), dtype=complex)
 
     for j in range(1, N):
         eta = driving_dissipation_ratio(betas[j], n, m) * g
-        dim = min(max(int(round(betas[j]**2)), 40), 100)
+        dim = min(max(int(round(3 * betas[j]**2)), 70), 120)
+        opa = qt.destroy(dim)
+        opa2 = opa**2
         num = qt.num(dim)
         num2 = num**2
         try:
             ems, *_ = metastable_states(g, eta, d, n, m, dim)
             EV[j, 0, :] = [qt.expect(num, ss) for ss in ems]
             EV[j, 1, :] = [qt.expect(num2, ss) for ss in ems]
-            print(j, EV[j], [(em.isoper, em.isherm, em.tr()) for em in ems])
+            EV[j, 2, :] = [qt.expect(opa, ss) for ss in ems]
+            EV[j, 3, :] = [qt.expect(opa2, ss) for ss in ems]
+            print(j, dim, EV[j], [(em.isoper, em.isherm, em.tr()) for em in ems])
         except Exception as e:
             print(j, e)
             EV[j, :, :] = np.nan
@@ -53,12 +57,12 @@ def plot_lines(files, outpath, mnms, labels=None, right_amp=False):
     if not files:
         return
 
-    latexify(plt, type='paper', fract=(0.2))
+    latexify(plt, type='paper', fract=(0.5))
 
     if labels is None:
         labels = [None] * len(files)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(nrows=3)
 
     i_min = 1
 
@@ -69,8 +73,13 @@ def plot_lines(files, outpath, mnms, labels=None, right_amp=False):
         betas, g, D = parse_filename(file.stem)
         # sq = np.sqrt(ev[:, 1] - ev[:, 0]**2) / ev[:, 0]
         sq = (ev[:, 1] - ev[:, 0]**2) / ev[:, 0] - 1
-        # sq[sq < 0] = np.nan
-        ax.plot(betas[i_min:], sq, label=lbl)
+        sq[np.abs(sq) > 10] = np.nan
+        ax[0].plot(betas[i_min:], sq, label=lbl)
+
+        X1 = 1 + ev[:, 0] + ev[:, 3] + np.conj(ev[:, 3])
+        X2 = 1 + ev[:, 0] - ev[:, 3] - np.conj(ev[:, 3])
+        ax[1].plot(betas[i_min:], X1, label=lbl)
+        ax[2].plot(betas[i_min:], X2, label=lbl)
 
     ax.axhline(0.0, c='k', ls='-')
 
@@ -153,7 +162,7 @@ def plot_nm_comparisons(d=None, g=None):
                 continue
             plot_lines(fpaths, outpath / f'd-{d}_g-{g}.pdf', mnms, labels)
             for n_ in [3, 4, 5]:
-                fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0-6.0-60_d-{d}_g-{g}.npy' for n, m in mnms if n == n_]
+                fpaths = [dirpath / f'{n}_{m}' / f'beta-0.0001-6.0-100_d-{d}_g-{g}.npy' for n, m in mnms if n == n_]
                 fpaths = [f for f in fpaths if f.exists()]
                 plot_lines(fpaths, outpath / f'n-{n_}_d-{d}_g-{g}.pdf', mnms, [f'${n} - {m}$' for n, m in mnms if n == n_])
 

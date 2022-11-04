@@ -1,7 +1,7 @@
 import numpy as np
 import qutip as qt
 
-from utils import TOL, local_data_path
+from utils import TOL, local_data_path, is_zero
 from model import build_system
 
 
@@ -75,6 +75,9 @@ def ems_qvdp(L_or_H, Js=None, n=2, max_eigvals=5):
 
 
 def ems_qvdp_2(eigv, evl, evr, rho_ss, Id):
+    if not is_zero(np.imag(eigv[1])):
+        raise ValueError(f'First eigenvalue must be real: {eigv[1]}')
+
     l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
     r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
 
@@ -100,6 +103,11 @@ def ems_qvdp_2(eigv, evl, evr, rho_ss, Id):
 
 
 def ems_qvdp_3(ev, evl, evr, rho_ss, Id):
+    if is_zero(np.imag(ev[1])) or is_zero(np.imag(ev[2])):
+        raise ValueError(f'First and second eigenvalue must be complex: {ev[1]}, {ev[2]}')
+    if np.abs(ev[1] - np.conj(ev[2])) > TOL:
+        raise ValueError(f'First and second are not conjugate of each other: {ev[1]}, {ev[2]}')
+
     l1 = qt.vector_to_operator(evl[1]).tidyup(atol=TOL)
     r1 = qt.vector_to_operator(evr[1]).tidyup(atol=TOL)
     l2 = qt.vector_to_operator(evl[2]).tidyup(atol=TOL)
@@ -132,6 +140,13 @@ def ems_qvdp_3(ev, evl, evr, rho_ss, Id):
 
 
 def ems_qvdp_4(ev, evl, evr, rho_ss, Id):
+    if is_zero(np.imag(ev[1])) or is_zero(np.imag(ev[2])):
+        raise ValueError(f'First and second eigenvalue must be complex: {ev[1]}, {ev[2]}')
+    if not is_zero(np.imag(ev[3])):
+        raise ValueError(f'Third eigenvalue must be real: {ev[3]}')
+    if np.abs(ev[1] - np.conj(ev[2])) > TOL:
+        raise ValueError(f'First and second are not conjugate of each other: {ev[1]}, {ev[2]}')
+
     L, R = [], []
     ems_ev = []
     Dcs = []

@@ -5,7 +5,7 @@ from cycler import cycler
 
 DATA_PATH = Path(__file__).parent.parent / 'data'
 PLOT_PATH = Path(__file__).parent.parent / 'plots'
-TOL = 1e-20
+TOL = 1e-12
 
 
 PARAM_SEPARATOR = '_'
@@ -26,6 +26,10 @@ def local_plot_path(fname, nl_eta=None, nl_dis=None):
         path = path / f'{nl_eta}_{nl_dis}'
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def is_zero(x, tol=TOL):
+    return np.abs(x) < tol
 
 
 def amplitude(g2, eta, n, m, **other_params):
