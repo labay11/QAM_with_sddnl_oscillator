@@ -1,11 +1,41 @@
 from argparse import ArgumentParser
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.integrate import trapezoid
 import qutip as qt
 
 from model import build_system
 from utils import local_data_path, local_plot_path, latexify,\
     driving_dissipation_ratio, build_filename, amplitude, parse_filename
+
+
+def ss_to_ems(ss, n, beta):
+    xlim = int(beta**3)
+    xvec = np.linspace(-xlim, xlim, 10**(max(2, int(np.log10(xlim)))))
+    L2 = len(xvec) // 2
+
+    W = qt.wigner(ss, xvec)
+
+    if n == 2:
+        W[:, L2:] = 0.0
+        W *= 2
+    elif n == 3:
+        for j in range(L2):
+            W[j, j:] = 0.0
+            W[-j, j:] = 0.0
+        W *= 3
+    elif n == 4:
+        W[:, :L2] = 0.0
+        W[:L2, L2:] = 0.0
+        W *= 4
+
+    return W, xvec
+
+
+def wexpect(wop, w, xvec):
+    dx = (xvec[-1] - xvec[0]) / len(xvec)
+    A = w * wop
+    return trapezoid(trapezoid(A, dx=dx), dx=dx)
 
 
 def squeezing_amplitude(g2, betas, D, n, m):
@@ -16,8 +46,6 @@ def squeezing_amplitude(g2, betas, D, n, m):
     for j in range(1, N):
         eta = driving_dissipation_ratio(betas[j], n, m) * g2
         dim = min(max(int(round(3 * betas[j]**3)), 100), 200)
-        opa = qt.destroy(dim)
-        opa2 = opa**2
         num = qt.num(dim)
         num2 = num**2
         try:
@@ -25,12 +53,24 @@ def squeezing_amplitude(g2, betas, D, n, m):
             ss = qt.steadystate(L)
             EV[j, 0] = qt.expect(num, ss)
             EV[j, 1] = qt.expect(num2, ss)
-            EV[j, 2] = qt.expect(opa, ss)
-            EV[j, 3] = qt.expect(opa2, ss)
             print(j, dim, EV[j], ss.isoper, ss.isherm, ss.tr())
         except Exception as e:
             print(j, e)
-            EV[j, :, :] = np.nan
+            EV[j, :] = np.nan
+
+        try:
+            w, xvec = ss_to_ems(ss, n, betas[j])
+            opa = qt.destroy(dim)
+            opa2 = opa**2
+
+            wopa = qt.wigner(opa, xvec)
+            wopa2 = qt.wigner(opa2, xvec)
+
+            EV[j, 2] = wexpect(wopa, ss, xvec)
+            EV[j, 3] = wexpect(wopa2, ss, xvec)
+        except Exception as e:
+            print(j, 'wexpect', e)
+            EV[j, 2:] = np.nan
 
     np.save(local_data_path(__file__, n, m) / build_filename(g2=g2, D=D, betas=betas, ext='.npy'), EV)
 
@@ -82,7 +122,7 @@ def plot_lines(files, outpath, mnms, labels=None, right_amp=False):
         sq = (ev[:, 1] - ev[:, 0]**2) / ev[:, 0] - 1
         print(sq.shape, betas.shape, ev.shape)
         sq[np.abs(sq) > 10] = np.nan
-        ax[0].plot(betas[i_min:], np.real(sq, axis=1), label=lbl)
+        ax[0].plot(betas[i_min:], np.real(sq), label=lbl)
 
         Da2 = ev[:, 3] - ev[:, 2]**2
         Dad2 = np.conj(ev[:, 3]) - np.conj(ev[:, 2])**2
