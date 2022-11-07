@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import qutip as qt
 
-from ems import metastable_states
+from model import build_system
 from utils import local_data_path, local_plot_path, latexify,\
     driving_dissipation_ratio, build_filename, amplitude, parse_filename
 
@@ -11,22 +11,23 @@ from utils import local_data_path, local_plot_path, latexify,\
 def squeezing_amplitude(g2, betas, D, n, m):
     N = len(betas)
 
-    EV = np.zeros((N, 4, n), dtype=complex)
+    EV = np.zeros((N, 4), dtype=complex)
 
     for j in range(1, N):
         eta = driving_dissipation_ratio(betas[j], n, m) * g2
-        dim = min(max(int(round(3 * betas[j]**2)), 70), 120)
+        dim = min(max(int(round(3 * betas[j]**3)), 100), 200)
         opa = qt.destroy(dim)
         opa2 = opa**2
         num = qt.num(dim)
         num2 = num**2
         try:
-            ems, *_ = metastable_states(g2, eta, D, n, m, dim)
-            EV[j, 0, :] = [qt.expect(num, ss) for ss in ems]
-            EV[j, 1, :] = [qt.expect(num2, ss) for ss in ems]
-            EV[j, 2, :] = [qt.expect(opa, ss) for ss in ems]
-            EV[j, 3, :] = [qt.expect(opa2, ss) for ss in ems]
-            print(j, dim, EV[j], [(em.isoper, em.isherm, em.tr()) for em in ems])
+            L = build_system(1.0, g2, eta, D, n, m, dim)
+            ss = qt.steadystate(L)
+            EV[j, 0] = qt.expect(num, ss)
+            EV[j, 1] = qt.expect(num2, ss)
+            EV[j, 2] = qt.expect(opa, ss)
+            EV[j, 3] = qt.expect(opa2, ss)
+            print(j, dim, EV[j], ss.isoper, ss.isherm, ss.tr())
         except Exception as e:
             print(j, e)
             EV[j, :, :] = np.nan
@@ -41,18 +42,18 @@ def squeezing_driving(g2, etas, D, n, m):
 
     for j in range(N):
         beta = amplitude(g2, etas[j], n, m)
-        dim = min(max(int(round(3 * beta**2)), 70), 120)
+        dim = min(max(int(round(3 * beta**3)), 100), 200)
         opa = qt.destroy(dim)
         opa2 = opa*opa
         num = qt.num(dim)
         num2 = num*num
         try:
-            ems, *_ = metastable_states(g2, etas[j], D, n, m, dim)
-            EV[j, 0, :] = [qt.expect(num, ss) for ss in ems]
-            EV[j, 1, :] = [qt.expect(num2, ss) for ss in ems]
-            EV[j, 2, :] = [qt.expect(opa, ss) for ss in ems]
-            EV[j, 3, :] = [qt.expect(opa2, ss) for ss in ems]
-            print(j, dim, EV[j], [(em.isoper, em.isherm, em.tr()) for em in ems])
+            L = build_system(1.0, g2, etas[j], D, n, m, dim)
+            ss = qt.steadystate(L)
+            EV[j, 0] = qt.expect(num, ss)
+            EV[j, 1] = qt.expect(num2, ss)
+            EV[j, 2] = qt.expect(opa, ss)
+            EV[j, 3] = qt.expect(opa2, ss)
         except Exception as e:
             print(j, e)
             EV[j, :, :] = np.nan
@@ -81,19 +82,18 @@ def plot_lines(files, outpath, mnms, labels=None, right_amp=False):
         sq = (ev[:, 1] - ev[:, 0]**2) / ev[:, 0] - 1
         print(sq.shape, betas.shape, ev.shape)
         sq[np.abs(sq) > 10] = np.nan
-        ax[0].plot(betas[i_min:], np.real(np.mean(sq, axis=1)), label=lbl)
+        ax[0].plot(betas[i_min:], np.real(sq, axis=1), label=lbl)
 
         Da2 = ev[:, 3] - ev[:, 2]**2
         Dad2 = np.conj(ev[:, 3]) - np.conj(ev[:, 2])**2
         Dn = ev[:, 0] - np.abs(ev[:, 2])**2
-        print(Da2)
 
         X1 = (Da2 + Dad2 + 2 * Dn + 1)*0.25
         X2 = (-Da2 - Dad2 + 2 * Dn + 1)*0.25
         X1[np.abs(X1) > 100] = np.nan
         X2[np.abs(X2) > 100] = np.nan
-        ax[1].plot(betas[i_min:], np.real(X1[:, 0]), label=lbl)
-        ax[2].plot(betas[i_min:], np.real(X2[:, 0]), label=lbl)
+        ax[1].plot(betas[i_min:], np.real(X1), label=lbl)
+        ax[2].plot(betas[i_min:], np.real(X2), label=lbl)
 
     ax[0].axhline(0.0, c='k', ls='-')
     ax[1].axhline(0.25, c='k', ls='-')
