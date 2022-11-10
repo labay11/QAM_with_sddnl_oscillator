@@ -8,7 +8,7 @@ from model import build_system
 from utils import PLOT_PATH, latexify, amplitude
 
 
-def plot_fock(rho, fig=None, ax=None, figsize=(6, 6), draw_dist=True, cut_off=None):
+def plot_fock(rho, fig=None, ax=None, figsize=(6, 6), draw_dist=True, cut_off=None, labels=True):
     if not fig and not ax:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
@@ -21,19 +21,24 @@ def plot_fock(rho, fig=None, ax=None, figsize=(6, 6), draw_dist=True, cut_off=No
     N = np.arange(0, len(diag), 1) - 0.5
 
     ax.bar(N[:n_levels], diag[:n_levels], color='C0')
+    mu = None
     if draw_dist:
         mu = np.sqrt(np.sum(diag * (N + 0.5)))
         ax.plot(N[:n_levels], poisson.pmf(N[:n_levels] + 0.5, mu**2), c='C1', ls='-', label=rf'$\beta = {mu:.4f}$')
 
-    ax.set_xlabel('Fock level')
-    ax.set_ylabel('Level probability')
+    if labels:
+        ax.set_xlabel('Fock level')
+        ax.set_ylabel('Level probability')
 
-    return N, diag
+    return N, diag, mu
 
 
-def plot_multiple_fock(fig, axs, states, draw_dist=True):
-    for ax, state in zip(axs, states):
-        plot_fock(fig, ax, state, draw_dist=draw_dist)
+def plot_multiple_fock(fig, axs, states, **kwargs):
+    res = [
+        plot_fock(state, fig, ax, **kwargs)
+        for ax, state in zip(axs, states)
+    ]
+    return res
 
 
 if __name__ == '__main__':

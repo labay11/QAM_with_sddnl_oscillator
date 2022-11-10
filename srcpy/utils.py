@@ -35,14 +35,16 @@ def is_zero(x, tol=TOL):
 def amplitude(g2, eta, n, m, **other_params):
     """returns the theoretical amplitude of the lobes"""
     if n == 2 * m:
-        return np.power(1 / (m * (4 * eta - g2)), 1 / (2 * m - 2))
+        return np.power(1.0 / (m * (4 * eta - g2)), 1.0 / (2 * m - 2))
 
     return np.power(2 * n * eta / (m * g2), 1 / (2 * m - n))
 
 
-def driving_dissipation_ratio(amplitude, nl_eta, nl_dis):
+def driving_dissipation_ratio(amplitude, n, m, **other_params):
     """returns the theoretical driving disspation ration needed to achieve the given amplitude"""
-    return np.power(amplitude, 2 * nl_dis - nl_eta) * nl_dis / (2 * nl_eta)
+    if n == 2 * m:
+        return 1.0 + 1.0 / (4.0 * other_params['g2'] * m * np.power(amplitude, 2 * m - 2))
+    return np.power(amplitude, 2 * m - n) * m / (2 * n)
 
 
 PARAMS_ORDER = ['g1', 'g2', 'eta', 'beta', 'D', 'dim', 't']

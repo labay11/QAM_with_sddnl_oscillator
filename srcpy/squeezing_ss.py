@@ -11,10 +11,10 @@ from utils import local_data_path, local_plot_path, latexify,\
 
 def ss_to_ems(ss, n, beta):
     xlim = int(beta**3)
-    xvec = np.linspace(-xlim, xlim, 10**(max(2, int(np.log10(xlim)))))
+    xvec = np.linspace(-xlim, xlim, 1000)
     L2 = len(xvec) // 2
 
-    W = qt.wigner(ss, xvec)
+    W = qt.wigner(ss, xvec, xvec)
 
     if n == 2:
         W[:, L2:] = 0.0
@@ -33,7 +33,7 @@ def ss_to_ems(ss, n, beta):
 
 
 def wexpect(wop, w, xvec):
-    dx = (xvec[-1] - xvec[0]) / len(xvec)
+    dx = (- 2 * xvec[0]) / len(xvec)
     A = w * wop
     return trapezoid(trapezoid(A, dx=dx), dx=dx)
 
@@ -62,9 +62,10 @@ def squeezing_amplitude(g2, betas, D, n, m):
             w, xvec = ss_to_ems(ss, n, betas[j])
             opa = qt.destroy(dim)
             opa2 = opa**2
+            print(xvec)
 
-            wopa = qt.wigner(opa, xvec)
-            wopa2 = qt.wigner(opa2, xvec)
+            wopa = qt.wigner(opa, xvec, xvec)
+            wopa2 = qt.wigner(opa2, xvec, xvec)
 
             EV[j, 2] = wexpect(wopa, ss, xvec)
             EV[j, 3] = wexpect(wopa2, ss, xvec)
@@ -128,16 +129,16 @@ def plot_lines(files, outpath, mnms, labels=None, right_amp=False):
         Dad2 = np.conj(ev[:, 3]) - np.conj(ev[:, 2])**2
         Dn = ev[:, 0] - np.abs(ev[:, 2])**2
 
-        X1 = (Da2 + Dad2 + 2 * Dn + 1)*0.25
-        X2 = (-Da2 - Dad2 + 2 * Dn + 1)*0.25
+        X1 = (Da2 + Dad2 + 2 * Dn)
+        X2 = (-Da2 - Dad2 + 2 * Dn)
         X1[np.abs(X1) > 100] = np.nan
         X2[np.abs(X2) > 100] = np.nan
         ax[1].plot(betas[i_min:], np.real(X1), label=lbl)
         ax[2].plot(betas[i_min:], np.real(X2), label=lbl)
 
     ax[0].axhline(0.0, c='k', ls='-')
-    ax[1].axhline(0.25, c='k', ls='-')
-    ax[2].axhline(0.25, c='k', ls='-')
+    ax[1].axhline(0.0, c='k', ls='-')
+    ax[2].axhline(0.0, c='k', ls='-')
 
     ax[0].set(ylabel='Squeezing')
     ax[1].set(ylabel=r'$(\Delta X_1)^2$')
